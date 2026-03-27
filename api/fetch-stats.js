@@ -1,0 +1,274 @@
+const REPOS = [
+  { key: 'steve', owner: 'Sastin1', repo: 'limocity-wat-backup', displayName: 'Steve Astin' },
+  { key: 'thomas', owner: 'thomaslc214', repo: 'pay-limocity', displayName: 'Thomas Clark' },
+];
+
+// --- Categorization ---
+
+function categorizeCommit(message) {
+  const msg = message.toLowerCase();
+  const first = message.split('\n')[0].toLowerCase();
+
+  if (/bug\s*\d+|hotfix/.test(msg)) return 'bugfix';
+  if (/^fix[\s:]/.test(first) || /fix\s+bug/.test(msg)) return 'bugfix';
+  if (/e2e|test suite|verification (test|check)/.test(msg)) return 'test';
+  if (/^deploy|deployed to|execute wave/.test(first)) return 'deploy';
+  if (/backup|migration\s*\d|repo cleanup|gitignore/.test(msg)) return 'infra';
+  if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}/.test(msg)) return 'docs';
+  if (/design doc|proposal|strategy|audit report|architecture/.test(msg)) return 'design';
+  if (/rewrite|redesign|rename|convert|rebuild|switch.*from.*to|cleanup/.test(msg)) return 'refactor';
+  if (/^(add|build|create|wire|implement)\b/.test(first)) return 'feature';
+  if (/n8n|workflow|google ads|gbp|crm|zoho/.test(msg)) return 'ops';
+  return 'other';
+}
+
+function getProject(message) {
+  const msg = message.toLowerCase();
+  // Order matters — more specific matches first
+  if (/james|handoff|fulfillment|checkout|reservation|payment.?link|pay-limocity/.test(msg)) return 'James';
+  if (/winston|elevenlabs|coaching|voice.*tool|voice.*router|call.*script/.test(msg)) return 'Winston';
+  if (/seo|schema|faq|suburb|meta title|json-ld|breadcrumb|divi|wordpress|wp_|wpcode|yoast|page.*builder/.test(msg)) return 'Website / SEO';
+  if (/n8n|workflow|trigger|webhook|polling|orchestrat|execution/.test(msg)) return 'n8n / Automation';
+  if (/supabase|database|migration\s*\d|sql|table|postgres/.test(msg)) return 'Database / Infra';
+  if (/form|gravity|lead|zoho|crm|funnel/.test(msg)) return 'Forms / CRM';
+  if (/phone|ringcentral|sms|voice route|inbound|outbound call/.test(msg)) return 'Telephony';
+  if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}|system map|cleanup|stale/.test(msg)) return 'Docs / Admin';
+  if (/google ads|bidding|cpc|ppc|gbp|analytics|ga4/.test(msg)) return 'Marketing';
+  if (/skill|memory|backup|repo cleanup|gitignore|\.env/.test(msg)) return 'Tools / Setup';
+  return 'Other';
+}
+
+// --- Impact Scoring ---
+
+const BASE_SCORES = {
+  feature: 8, deploy: 7, bugfix: 6, refactor: 5, ops: 5,
+  design: 4, test: 4, infra: 3, docs: 2, other: 3,
+};
+
+function sizeMultiplier(additions, deletions) {
+  const net = additions + deletions;
+  if (net === 0) return 0.5;
+  if (net <= 10) return 0.8;
+  if (net <= 50) return 1.0;
+  if (net <= 200) return 1.2;
+  if (net <= 500) return 1.3;
+  return 1.4;
+}
+
+function scoreCommit(commit) {
+  const base = BASE_SCORES[commit.category] || 3;
+  const size = sizeMultiplier(commit.additions, commit.deletions);
+  const raw = base * size;
+  return Math.round(Math.min(raw, 10) * 10) / 10;
+}
+
+// --- Synergy Detection ---
+
+const STOP_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+  'is', 'was', 'are', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does',
+  'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'shall', 'must',
+  'that', 'this', 'these', 'those', 'it', 'its', 'my', 'your', 'his', 'her', 'our',
+  'their', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some',
+  'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too', 'very', 'just', 'also',
+  'now', 'new', 'from', 'by', 'up', 'about', 'into', 'through', 'after', 'before',
+  'add', 'update', 'fix', 'set', 'get', 'use', 'make', 'run', 'move', 'change',
+  'co-authored-by', 'claude', 'opus', 'noreply', 'anthropic', 'com', 'session',
+]);
+
+function extractKeywords(commits) {
+  const keywords = new Map();
+  for (const c of commits) {
+    const firstLine = c.message.split('\n')[0].toLowerCase();
+    const words = firstLine.replace(/[^a-z0-9-]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    for (const w of words) {
+      keywords.set(w, (keywords.get(w) || 0) + 1);
+    }
+  }
+  return keywords;
+}
+
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr);
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  return start.toISOString().slice(0, 10);
+}
+
+function detectSynergies(steveCommits, thomasCommits) {
+  const steveByWeek = {};
+  const thomasByWeek = {};
+  for (const c of steveCommits) {
+    const wk = getWeekKey(c.committedDate);
+    (steveByWeek[wk] = steveByWeek[wk] || []).push(c);
+  }
+  for (const c of thomasCommits) {
+    const wk = getWeekKey(c.committedDate);
+    (thomasByWeek[wk] = thomasByWeek[wk] || []).push(c);
+  }
+
+  const allWeeks = [...new Set([...Object.keys(steveByWeek), ...Object.keys(thomasByWeek)])].sort();
+  const synergies = [];
+
+  for (const week of allWeeks) {
+    const sc = steveByWeek[week] || [];
+    const tc = thomasByWeek[week] || [];
+    if (sc.length === 0 || tc.length === 0) continue;
+
+    const sk = extractKeywords(sc);
+    const tk = extractKeywords(tc);
+    const shared = [];
+    for (const [word] of sk) {
+      if (tk.has(word)) shared.push(word);
+    }
+
+    if (shared.length > 0) {
+      const significant = shared.filter(w => !['file', 'files', 'page', 'pages', 'data', 'config'].includes(w));
+      if (significant.length > 0) {
+        synergies.push({
+          week,
+          keywords: significant.slice(0, 8),
+          steveCommitCount: sc.length,
+          thomasCommitCount: tc.length,
+        });
+      }
+    }
+  }
+
+  return synergies;
+}
+
+// --- GitHub GraphQL ---
+
+async function fetchAllCommits(token, owner, repo) {
+  const allNodes = [];
+  let cursor = null;
+  let hasNext = true;
+
+  while (hasNext) {
+    const afterClause = cursor ? `, after: "${cursor}"` : '';
+    const query = `{
+      repository(owner: "${owner}", name: "${repo}") {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 100${afterClause}) {
+                nodes {
+                  oid
+                  message
+                  committedDate
+                  additions
+                  deletions
+                  changedFilesIfAvailable
+                  author { name user { login } }
+                }
+                pageInfo { hasNextPage endCursor }
+                totalCount
+              }
+            }
+          }
+        }
+      }
+    }`;
+
+    const res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: `bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'github-dashboard',
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`GitHub API error ${res.status}: ${text}`);
+    }
+
+    const json = await res.json();
+    if (json.errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
+    }
+
+    const history = json.data.repository.defaultBranchRef.target.history;
+    allNodes.push(...history.nodes);
+    hasNext = history.pageInfo.hasNextPage;
+    cursor = history.pageInfo.endCursor;
+  }
+
+  return allNodes;
+}
+
+function enrichCommits(nodes) {
+  return nodes.map(n => {
+    const category = categorizeCommit(n.message);
+    const commit = {
+      sha: n.oid.slice(0, 7),
+      message: n.message.split('\n')[0],
+      fullMessage: n.message,
+      committedDate: n.committedDate,
+      additions: n.additions,
+      deletions: n.deletions,
+      filesChanged: n.changedFilesIfAvailable || 0,
+      authorName: n.author.name,
+      authorLogin: n.author.user?.login || null,
+      category,
+      project: getProject(n.message),
+    };
+    commit.impactScore = scoreCommit(commit);
+    return commit;
+  });
+}
+
+// --- Handler ---
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
+  }
+
+  try {
+    const results = {};
+
+    for (const r of REPOS) {
+      const nodes = await fetchAllCommits(token, r.owner, r.repo);
+      const commits = enrichCommits(nodes);
+      const totalAdditions = commits.reduce((s, c) => s + c.additions, 0);
+      const totalDeletions = commits.reduce((s, c) => s + c.deletions, 0);
+      const avgImpact = commits.length > 0
+        ? Math.round((commits.reduce((s, c) => s + c.impactScore, 0) / commits.length) * 10) / 10
+        : 0;
+
+      results[r.key] = {
+        owner: r.owner,
+        repo: r.repo,
+        displayName: r.displayName,
+        totalCommits: commits.length,
+        totalAdditions,
+        totalDeletions,
+        avgImpactScore: avgImpact,
+        commits,
+      };
+    }
+
+    const synergies = detectSynergies(
+      results.steve.commits,
+      results.thomas.commits
+    );
+
+    return res.status(200).json({
+      generatedAt: new Date().toISOString(),
+      ...results,
+      synergies,
+    });
+  } catch (err) {
+    console.error('Error fetching stats:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}

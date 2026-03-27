@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Activity Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+    --blue: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
+    --purple: #bc8cff; --pink: #f778ba; --cyan: #39d2c0;
+    --steve-color: #58a6ff; --thomas-color: #3fb950;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header h1 span { color: var(--text-muted); font-weight: 400; }
+  .meta { color: var(--text-dim); font-size: 13px; }
+
+  /* Date filter */
+  .date-filter { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .date-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  .date-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .date-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .date-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: var(--radius); font-size: 13px; }
+  .date-input::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+
+  .person-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .person-stat { text-align: center; }
+  .person-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .steve-label { color: var(--steve-color); }
+  .thomas-label { color: var(--thomas-color); }
+  .big-number { font-size: 32px; font-weight: 700; }
+  .stat-sub { font-size: 14px; color: var(--text-muted); margin-top: 2px; }
+  .stat-detail { font-size: 13px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-width: 100%; }
+
+  /* Chart cards */
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Project bars */
+  .project-section { margin-bottom: 20px; }
+  .project-bar-wrap { display: flex; height: 32px; border-radius: 6px; overflow: hidden; cursor: pointer; margin-top: 8px; }
+  .project-segment { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; transition: opacity 0.15s; min-width: 2px; }
+  .project-segment:hover { opacity: 0.8; }
+  .project-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .project-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: 12px; transition: all 0.15s; }
+  .project-legend-item:hover { background: var(--surface2); color: var(--text); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Drill-down panel */
+  .drill-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-top: 12px; display: none; animation: slideDown 0.2s ease-out; }
+  .drill-panel.open { display: block; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .drill-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .drill-title { font-size: 14px; font-weight: 600; }
+  .drill-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+  .drill-close:hover { color: var(--text); }
+
+  /* Commit items */
+  .commit-list { max-height: 500px; overflow-y: auto; }
+  .commit-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: flex-start; cursor: pointer; }
+  .commit-item:last-child { border-bottom: none; }
+  .commit-item:hover { background: rgba(255,255,255,0.02); }
+  .commit-score { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .commit-body { flex: 1; min-width: 0; }
+  .commit-msg-text { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .commit-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+  .commit-full { display: none; font-size: 12px; color: var(--text-muted); margin-top: 8px; padding: 8px 12px; background: var(--bg); border-radius: 6px; white-space: pre-wrap; word-break: break-word; }
+  .commit-full.open { display: block; }
+  .commit-tag { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .commit-date { font-size: 12px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+
+  .cat-feature { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .cat-bugfix { background: rgba(248,81,73,0.15); color: var(--red); }
+  .cat-deploy { background: rgba(63,185,80,0.15); color: var(--green); }
+  .cat-docs { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+  .cat-refactor { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .cat-test { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .cat-infra { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .cat-design { background: rgba(247,120,186,0.15); color: var(--pink); }
+  .cat-ops { background: rgba(57,210,192,0.15); color: var(--cyan); }
+  .cat-other { background: rgba(139,148,158,0.1); color: var(--text-dim); }
+
+  /* Impact explainer */
+  .explainer-toggle { font-size: 12px; color: var(--blue); cursor: pointer; border: none; background: none; }
+  .explainer-toggle:hover { text-decoration: underline; }
+  .explainer { display: none; margin-top: 12px; padding: 16px; background: var(--bg); border-radius: var(--radius); font-size: 13px; color: var(--text-muted); line-height: 1.8; }
+  .explainer.open { display: block; }
+  .explainer code { color: var(--text); background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+  /* Leaderboard */
+  .leaderboard { list-style: none; }
+  .leaderboard li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .leaderboard li:last-child { border-bottom: none; }
+  .leaderboard li:hover { background: rgba(255,255,255,0.02); }
+  .lb-score { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .lb-msg { font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-meta { font-size: 12px; color: var(--text-muted); }
+  .lb-person { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .lb-detail { display: none; font-size: 12px; color: var(--text-dim); padding: 8px 0 4px 52px; }
+  .lb-detail.open { display: block; }
+
+  /* Synergies */
+  .synergy-card { background: var(--surface2); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.15s; border: 1px solid transparent; }
+  .synergy-card:hover { border-color: var(--border); }
+  .synergy-week { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .synergy-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .synergy-kw { background: rgba(188,140,255,0.15); color: var(--purple); padding: 2px 10px; border-radius: 12px; font-size: 12px; }
+
+  /* Weekly table */
+  .week-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .week-table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .week-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .week-table tr { cursor: pointer; }
+  .week-table tr:hover td { background: var(--surface2); }
+  .week-table .steve-col { color: var(--steve-color); }
+  .week-table .thomas-col { color: var(--thomas-color); }
+  .week-table .top-work { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text-dim); }
+  .week-expand { display: none; }
+  .week-expand.open { display: table-row; }
+  .week-expand td { padding: 0; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 16px; cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  /* Digest cards */
+  .digest-project { padding: 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 8px; }
+  .digest-project:hover { background: var(--surface2); border-color: var(--border); }
+  .digest-project:last-child { margin-bottom: 0; }
+  .digest-row { display: flex; align-items: center; gap: 8px; }
+  .digest-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .digest-name { font-size: 14px; font-weight: 600; }
+  .digest-stats { margin-left: auto; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .digest-effort-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .digest-headline { font-size: 13px; color: var(--text-muted); margin: 6px 0 4px 18px; line-height: 1.5; transition: opacity 0.3s; }
+  .digest-headline.digest-loading { animation: digestPulse 1.5s ease-in-out infinite; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .digest-headline.digest-summary-ready { white-space: normal; opacity: 0; animation: digestFadeIn 0.4s ease-out forwards; }
+  @keyframes digestPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes digestFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .digest-breakdown { font-size: 12px; color: var(--text-dim); margin-left: 18px; display: flex; align-items: center; gap: 6px; }
+  .digest-expand-hint { font-size: 11px; color: var(--text-dim); margin-left: auto; opacity: 0.6; }
+  .digest-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .digest-detail.open { display: block; }
+  .digest-empty { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+
+  /* Loading */
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { background: rgba(248,81,73,0.1); border: 1px solid var(--red); color: var(--red); padding: 16px 24px; border-radius: var(--radius); text-align: center; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>GitHub Activity <span>Team Impact</span></h1>
+      <div class="meta" id="meta">Loading...</div>
+    </div>
+    <div class="date-filter">
+      <button class="date-btn" data-days="7">7d</button>
+      <button class="date-btn" data-days="14">14d</button>
+      <button class="date-btn active" data-days="30">30d</button>
+      <button class="date-btn" data-days="0">All</button>
+      <input type="date" class="date-input" id="date-from" title="From">
+      <span style="color:var(--text-dim)">to</span>
+      <input type="date" class="date-input" id="date-to" title="To">
+      <button class="date-btn" id="custom-apply">Apply</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div style="color:var(--text-muted)">Fetching GitHub data...</div>
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <!-- Summary cards -->
+    <div class="cards" id="summary-cards"></div>
+
+    <!-- Impact over time (line chart) -->
+    <div class="chart-card">
+      <div class="card-header"><span class="card-title">Impact Over Time (Weekly)</span></div>
+      <div class="chart-wrap"><canvas id="impact-trend-chart"></canvas></div>
+    </div>
+
+    <!-- Digest (clustered accomplishments, respects date filter) -->
+    <div class="chart-card" id="weekly-digest-section"></div>
+
+    <!-- Project Focus + Top Impact Commits -->
+    <div class="two-col">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="card-header"><span class="card-title">Project Focus</span></div>
+        <div class="project-section">
+          <div class="person-label thomas-label">Thomas</div>
+          <div class="project-bar-wrap" id="thomas-project-bar"></div>
+          <div class="project-legend" id="thomas-project-legend"></div>
+          <div class="drill-panel" id="thomas-drill"></div>
+        </div>
+        <div class="project-section" style="margin-top:20px">
+          <div class="person-label steve-label">Steve</div>
+          <div class="project-bar-wrap" id="steve-project-bar"></div>
+          <div class="project-legend" id="steve-project-legend"></div>
+          <div class="drill-panel" id="steve-drill"></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="card-header"><span class="card-title">Top Impact Commits</span></div>
+        <ul class="leaderboard" id="leaderboard"></ul>
+      </div>
+    </div>
+
+    <!-- Synergies -->
+    <div class="chart-card">
+      <div class="card-header"><span class="card-title">Synergies &amp; Overlaps</span></div>
+      <div id="synergies"></div>
+      <div class="drill-panel" id="synergy-drill"></div>
+    </div>
+
+    <!-- Weekly breakdown (full history) -->
+    <div class="chart-card">
+      <div class="card-header"><span class="card-title">Weekly Breakdown</span></div>
+      <div style="overflow-x:auto">
+        <table class="week-table" id="week-table">
+          <thead><tr>
+            <th>Week of</th>
+            <th>Thomas Commits</th><th>Thomas Impact</th><th>Thomas Top Work</th>
+            <th>Steve Commits</th><th>Steve Impact</th><th>Steve Top Work</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent commits -->
+    <div class="chart-card">
+      <div class="card-header"><span class="card-title">All Commits</span></div>
+      <div class="tab-bar">
+        <div class="tab active" data-tab="all">All</div>
+        <div class="tab" data-tab="thomas">Thomas</div>
+        <div class="tab" data-tab="steve">Steve</div>
+      </div>
+      <div class="commit-list" id="commit-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- State ---
+let rawData = null;
+let filteredData = null;
+let activeDays = 30;
+let commitFilter = 'all';
+let charts = {};
+
+// --- Project Colors ---
+const PROJECT_COLORS = {
+  'James': '#3fb950', 'Winston': '#d29922', 'Website / SEO': '#58a6ff',
+  'n8n / Automation': '#39d2c0', 'Database / Infra': '#bc8cff', 'Forms / CRM': '#f778ba',
+  'Telephony': '#f85149', 'Docs / Admin': '#6e7681', 'Marketing': '#ff7b72',
+  'Tools / Setup': '#8b949e', 'Other': '#484f58',
+};
+const CAT_COLORS = {
+  feature: '#58a6ff', bugfix: '#f85149', deploy: '#3fb950', docs: '#8b949e',
+  refactor: '#d29922', test: '#bc8cff', infra: '#6e7681', design: '#f778ba',
+  ops: '#39d2c0', other: '#484f58',
+};
+
+// --- Data Fetching ---
+async function fetchData() {
+  const res = await fetch('/api/fetch-stats');
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+// --- Date Filtering ---
+function filterByDate(data, fromDate, toDate) {
+  const f = (commits) => commits.filter(c => {
+    const d = new Date(c.committedDate);
+    return d >= fromDate && d <= toDate;
+  });
+  const filteredSynergies = (data.synergies || []).filter(s => {
+    const weekDate = new Date(s.week);
+    return weekDate >= fromDate && weekDate <= toDate;
+  });
+  return { ...data, steve: { ...data.steve, commits: f(data.steve.commits) }, thomas: { ...data.thomas, commits: f(data.thomas.commits) }, synergies: filteredSynergies };
+}
+function applyDateFilter(days) {
+  if (days === 0) { filteredData = { ...rawData }; }
+  else {
+    const to = new Date(); const from = new Date(); from.setDate(from.getDate() - days);
+    filteredData = filterByDate(rawData, from, to);
+  }
+  render();
+}
+function applyCustomRange() {
+  const from = document.getElementById('date-from').value;
+  const to = document.getElementById('date-to').value;
+  if (!from || !to) return;
+  filteredData = filterByDate(rawData, new Date(from + 'T00:00:00'), new Date(to + 'T23:59:59'));
+  document.querySelectorAll('.date-btn[data-days]').forEach(b => b.classList.remove('active'));
+  render();
+}
+
+// --- Helpers ---
+function calcStats(commits) {
+  const totalImpact = Math.round(commits.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+  const avgImpact = commits.length > 0 ? Math.round((totalImpact / commits.length) * 10) / 10 : 0;
+  const topCommit = commits.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
+  return { commits: commits.length, totalImpact, avgImpact, topCommit };
+}
+function getProjectCounts(commits) {
+  const counts = {};
+  for (const c of commits) { counts[c.project] = (counts[c.project] || 0) + 1; }
+  return counts;
+}
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr); const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  return start.toISOString().slice(0, 10);
+}
+function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function formatNumber(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n.toString(); }
+function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+// --- Render ---
+function render() {
+  const d = filteredData;
+  const ss = calcStats(d.steve.commits);
+  const ts = calcStats(d.thomas.commits);
+  renderSummary(ss, ts);
+  renderWeeklyDigest(d.steve.commits, d.thomas.commits);
+  renderImpactTrend(d.steve.commits, d.thomas.commits);
+  renderProjectFocus(d.thomas.commits, 'thomas');
+  renderProjectFocus(d.steve.commits, 'steve');
+  renderLeaderboard(d.steve.commits, d.thomas.commits);
+  renderSynergies(d.synergies);
+  renderWeeklyTable(d.steve.commits, d.thomas.commits);
+  renderCommitList(d.steve.commits, d.thomas.commits);
+}
+
+// --- Summary Cards ---
+function renderSummary(ss, ts) {
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Activity &amp; Impact</div>
+      <div class="person-row">
+        <div class="person-stat">
+          <div class="person-label thomas-label">Thomas</div>
+          <div class="big-number" style="color:var(--thomas-color)">${ts.totalImpact}</div>
+          <div class="stat-sub">impact points</div>
+          <div class="stat-detail">${ts.commits} commits</div>
+        </div>
+        <div class="person-stat">
+          <div class="person-label steve-label">Steve</div>
+          <div class="big-number" style="color:var(--steve-color)">${ss.totalImpact}</div>
+          <div class="stat-sub">impact points</div>
+          <div class="stat-detail">${ss.commits} commits</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Avg Impact Per Commit
+        <button class="explainer-toggle" onclick="document.getElementById('score-explainer').classList.toggle('open')">&nbsp;How?</button>
+      </div>
+      <div class="person-row">
+        <div class="person-stat">
+          <div class="person-label thomas-label">Thomas</div>
+          <div class="big-number" style="color:var(--thomas-color)">${ts.avgImpact}</div>
+          <div class="stat-sub">per commit</div>
+        </div>
+        <div class="person-stat">
+          <div class="person-label steve-label">Steve</div>
+          <div class="big-number" style="color:var(--steve-color)">${ss.avgImpact}</div>
+          <div class="stat-sub">per commit</div>
+        </div>
+      </div>
+      <div class="explainer" id="score-explainer">
+        <strong style="color:var(--text)">Impact Score = Base Weight &times; Size Factor</strong><br><br>
+        <strong style="color:var(--text)">Base Weight</strong> (what type of work):<br>
+        &nbsp;&nbsp;New features: <code>8</code> &nbsp; Deploying: <code>7</code> &nbsp; Bug fixes: <code>6</code><br>
+        &nbsp;&nbsp;Refactoring: <code>5</code> &nbsp; Ops/automation: <code>5</code> &nbsp; Design: <code>4</code><br>
+        &nbsp;&nbsp;Testing: <code>4</code> &nbsp; Infrastructure: <code>3</code> &nbsp; Docs: <code>2</code><br><br>
+        <strong style="color:var(--text)">Size Factor</strong> (scope of code changes):<br>
+        &nbsp;&nbsp;Tiny (&le;10 lines): <code>&times;0.8</code> &nbsp; Small (&le;50): <code>&times;1.0</code><br>
+        &nbsp;&nbsp;Medium (&le;200): <code>&times;1.2</code> &nbsp; Large (&le;500): <code>&times;1.3</code><br>
+        &nbsp;&nbsp;Very large (500+): <code>&times;1.4</code> (capped &mdash; bulk &ne; better)<br><br>
+        Score is capped at 10. A new feature with 200 lines of code = 8 &times; 1.2 = <code>9.6</code>.<br>
+        A doc update with 5 lines = 2 &times; 0.8 = <code>1.6</code>.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Top Commit This Period</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+        <div class="person-label thomas-label" style="margin:0;flex-shrink:0;padding-top:2px;width:56px">Thomas</div>
+        <div style="font-size:20px;font-weight:700;color:var(--thomas-color);flex-shrink:0;width:32px;text-align:right">${ts.topCommit ? ts.topCommit.impactScore : '—'}</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.4">${ts.topCommit ? esc(ts.topCommit.message) : '—'}</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="person-label steve-label" style="margin:0;flex-shrink:0;padding-top:2px;width:56px">Steve</div>
+        <div style="font-size:20px;font-weight:700;color:var(--steve-color);flex-shrink:0;width:32px;text-align:right">${ss.topCommit ? ss.topCommit.impactScore : '—'}</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.4">${ss.topCommit ? esc(ss.topCommit.message) : '—'}</div>
+      </div>
+    </div>
+  `;
+}
+
+// --- Impact Over Time (line chart) ---
+function renderImpactTrend(steveCommits, thomasCommits) {
+  const allCommits = [...steveCommits, ...thomasCommits];
+  if (allCommits.length === 0) return;
+
+  // Group by week
+  const weeks = {};
+  for (const c of steveCommits) {
+    const wk = getWeekKey(c.committedDate);
+    if (!weeks[wk]) weeks[wk] = { steve: 0, thomas: 0 };
+    weeks[wk].steve += c.impactScore;
+  }
+  for (const c of thomasCommits) {
+    const wk = getWeekKey(c.committedDate);
+    if (!weeks[wk]) weeks[wk] = { steve: 0, thomas: 0 };
+    weeks[wk].thomas += c.impactScore;
+  }
+
+  const sorted = Object.keys(weeks).sort();
+  const labels = sorted.map(w => formatDate(w));
+  const steveData = sorted.map(w => Math.round(weeks[w].steve * 10) / 10);
+  const thomasData = sorted.map(w => Math.round(weeks[w].thomas * 10) / 10);
+
+  if (charts.impactTrend) charts.impactTrend.destroy();
+  charts.impactTrend = new Chart(document.getElementById('impact-trend-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Thomas', data: thomasData, borderColor: 'rgba(63,185,80,0.9)', backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+        { label: 'Steve', data: steveData, borderColor: 'rgba(88,166,255,0.9)', backgroundColor: 'rgba(88,166,255,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8b949e' } } },
+      scales: {
+        x: { ticks: { color: '#6e7681' }, grid: { color: 'rgba(48,54,61,0.5)' } },
+        y: { ticks: { color: '#6e7681' }, grid: { color: 'rgba(48,54,61,0.5)' }, title: { display: true, text: 'Impact Points', color: '#6e7681' } }
+      }
+    }
+  });
+}
+
+// --- Weekly Digest (clustered accomplishments) ---
+function clusterByProject(commits) {
+  const groups = {};
+  for (const c of commits) {
+    if (!groups[c.project]) groups[c.project] = [];
+    groups[c.project].push(c);
+  }
+  return Object.entries(groups)
+    .map(([proj, items]) => {
+      const totalPts = Math.round(items.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+      const topCommit = items.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
+      const catCounts = {};
+      for (const c of items) catCounts[c.category] = (catCounts[c.category] || 0) + 1;
+      const CAT_LABELS = { feature: 'feature', bugfix: 'bug fix', deploy: 'deploy', refactor: 'refactor', ops: 'ops', test: 'test', infra: 'infra', docs: 'doc', design: 'design', other: 'other' };
+      const breakdown = Object.entries(catCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, count]) => {
+          const label = CAT_LABELS[cat] || cat;
+          return `${count} ${label}${count > 1 ? (label.endsWith('x') ? 'es' : 's') : ''}`;
+        }).join(' \u00b7 ');
+
+      // Effort badge
+      const activeDays = new Set(items.map(c => c.committedDate.slice(0, 10))).size;
+      const totalLines = items.reduce((s, c) => s + c.additions + c.deletions, 0);
+      let effort;
+      if (items.length === 1 || totalLines <= 20) effort = { label: 'Quick fix', color: '#6e7681' };
+      else if (items.length <= 5 && activeDays <= 2) effort = { label: 'Focused work', color: '#58a6ff' };
+      else if (items.length <= 14 && activeDays <= 4) effort = { label: 'Sustained build', color: '#d29922' };
+      else effort = { label: 'Major initiative', color: '#bc8cff' };
+
+      return { project: proj, items, totalPts, topCommit, breakdown, effort, activeDays, totalLines };
+    })
+    .sort((a, b) => b.totalPts - a.totalPts);
+}
+
+function renderWeeklyDigest(steveCommits, thomasCommits) {
+  const steveRecent = steveCommits;
+  const thomasRecent = thomasCommits;
+
+  let dateLabel;
+  const activeBtn = document.querySelector('.date-btn[data-days].active');
+  if (activeBtn) {
+    const days = parseInt(activeBtn.dataset.days);
+    if (days === 0) { dateLabel = 'All Time'; }
+    else { dateLabel = `Last ${days} Days`; }
+  } else {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    dateLabel = `${formatDate(from)} to ${formatDate(to)}`;
+  }
+
+  const sImpact = Math.round(steveRecent.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+  const tImpact = Math.round(thomasRecent.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+
+  const thomasClusters = clusterByProject(thomasRecent);
+  const steveClusters = clusterByProject(steveRecent);
+
+  function renderPersonDigest(clusters, person, personColor) {
+    if (clusters.length === 0) return '<div class="digest-empty">No activity in this period</div>';
+    return clusters.map((cl, i) => {
+      const projColor = PROJECT_COLORS[cl.project] || '#484f58';
+      const id = `digest-${person}-${i}`;
+      const headlineId = `digest-headline-${person}-${i}`;
+      return `<div class="digest-project" onclick="document.getElementById('${id}').classList.toggle('open')">
+        <div class="digest-row">
+          <span class="digest-dot" style="background:${projColor}"></span>
+          <span class="digest-name" style="color:${projColor}">${esc(cl.project)}</span>
+          <span class="digest-effort-badge" style="background:${cl.effort.color}22;color:${cl.effort.color}">${cl.effort.label}</span>
+          <span class="digest-stats">${cl.totalPts} pts \u00b7 ${cl.items.length} commit${cl.items.length > 1 ? 's' : ''}</span>
+        </div>
+        <div class="digest-headline digest-loading" id="${headlineId}">${esc(cl.topCommit.message)}</div>
+        <div class="digest-breakdown">${cl.breakdown}<span class="digest-expand-hint">click to expand</span></div>
+        <div class="digest-detail" id="${id}">
+          ${cl.items.map(c => commitItemHTML(c, personColor)).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const el = document.getElementById('weekly-digest-section');
+  el.innerHTML = `
+    <div class="card-header">
+      <span class="card-title">Digest &mdash; ${dateLabel}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+          <span class="person-label thomas-label" style="margin:0">Thomas</span>
+          <span style="font-size:14px;color:var(--thomas-color);font-weight:700">${thomasRecent.length} commits \u00b7 ${tImpact} pts</span>
+        </div>
+        ${renderPersonDigest(thomasClusters, 'thomas', 'var(--thomas-color)')}
+      </div>
+      <div style="min-width:0">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+          <span class="person-label steve-label" style="margin:0">Steve</span>
+          <span style="font-size:14px;color:var(--steve-color);font-weight:700">${steveRecent.length} commits \u00b7 ${sImpact} pts</span>
+        </div>
+        ${renderPersonDigest(steveClusters, 'steve', 'var(--steve-color)')}
+      </div>
+    </div>
+  `;
+
+  // Attach commit expanders inside digest detail panels
+  el.querySelectorAll('.digest-detail').forEach(panel => attachCommitExpanders(panel));
+
+  // Build clusters for AI summarization and fire async
+  const allClusters = [];
+  for (const cl of thomasClusters) {
+    allClusters.push({ person: 'thomas', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), _idx: allClusters.length, _elId: `digest-headline-thomas-${thomasClusters.indexOf(cl)}` });
+  }
+  for (const cl of steveClusters) {
+    allClusters.push({ person: 'steve', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), _idx: allClusters.length, _elId: `digest-headline-steve-${steveClusters.indexOf(cl)}` });
+  }
+  if (allClusters.length > 0) fetchSummaries(allClusters);
+}
+
+// --- AI Summary Fetching ---
+async function fetchSummaries(clusters) {
+  try {
+    const payload = clusters.map(cl => ({
+      person: cl.person, project: cl.project,
+      activeDays: cl.activeDays, totalLines: cl.totalLines,
+      commits: cl.commits,
+    }));
+    const res = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clusters: payload }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.summaries || Object.keys(data.summaries).length === 0) return;
+
+    // Replace headlines with AI summaries
+    for (const cl of clusters) {
+      const summary = data.summaries[String(cl._idx)];
+      if (summary) {
+        const el = document.getElementById(cl._elId);
+        if (el) {
+          el.classList.remove('digest-loading');
+          el.textContent = summary;
+          el.classList.add('digest-summary-ready');
+        }
+      }
+    }
+    // Remove loading state from any remaining headlines
+    document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+  } catch (err) {
+    // Graceful fallback — just remove loading animation
+    document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+  }
+}
+
+// --- Project Focus (horizontal stacked bars) ---
+function renderProjectFocus(commits, person) {
+  const counts = getProjectCounts(commits);
+  const total = commits.length;
+  if (total === 0) {
+    document.getElementById(person + '-project-bar').innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px">No commits in this period</div>';
+    document.getElementById(person + '-project-legend').innerHTML = '';
+    return;
+  }
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const barEl = document.getElementById(person + '-project-bar');
+  const legendEl = document.getElementById(person + '-project-legend');
+
+  barEl.innerHTML = sorted.map(([proj, count]) => {
+    const pct = (count / total * 100);
+    const color = PROJECT_COLORS[proj] || '#484f58';
+    const label = pct >= 12 ? `${Math.round(pct)}%` : '';
+    return `<div class="project-segment" style="width:${pct}%;background:${color}" data-project="${esc(proj)}" data-person="${person}" title="${proj}: ${count} commits (${Math.round(pct)}%)">${label}</div>`;
+  }).join('');
+
+  legendEl.innerHTML = sorted.map(([proj, count]) => {
+    const pct = Math.round(count / total * 100);
+    const color = PROJECT_COLORS[proj] || '#484f58';
+    return `<div class="project-legend-item" data-project="${esc(proj)}" data-person="${person}">
+      <span class="legend-dot" style="background:${color}"></span>
+      ${esc(proj)} <span style="color:var(--text-dim)">${pct}% (${count})</span>
+    </div>`;
+  }).join('');
+
+  // Click handlers for drill-down
+  barEl.querySelectorAll('.project-segment').forEach(el => el.addEventListener('click', () => openProjectDrill(el.dataset.person, el.dataset.project)));
+  legendEl.querySelectorAll('.project-legend-item').forEach(el => el.addEventListener('click', () => openProjectDrill(el.dataset.person, el.dataset.project)));
+}
+
+function openProjectDrill(person, project) {
+  const drillEl = document.getElementById(person + '-drill');
+  const commits = filteredData[person].commits.filter(c => c.project === project);
+  const color = PROJECT_COLORS[project] || '#484f58';
+
+  drillEl.innerHTML = `
+    <div class="drill-header">
+      <span class="drill-title" style="color:${color}">${esc(project)} &mdash; ${commits.length} commits</span>
+      <button class="drill-close" onclick="this.closest('.drill-panel').classList.remove('open')">&times;</button>
+    </div>
+    <div class="commit-list">
+      ${commits.map(c => commitItemHTML(c, person === 'steve' ? 'var(--steve-color)' : 'var(--thomas-color)')).join('')}
+    </div>
+  `;
+  drillEl.classList.add('open');
+  attachCommitExpanders(drillEl);
+}
+
+// --- Leaderboard ---
+function renderLeaderboard(steveCommits, thomasCommits) {
+  const all = [
+    ...steveCommits.map(c => ({ ...c, person: 'steve' })),
+    ...thomasCommits.map(c => ({ ...c, person: 'thomas' })),
+  ].sort((a, b) => b.impactScore - a.impactScore).slice(0, 10);
+
+  const el = document.getElementById('leaderboard');
+  el.innerHTML = all.map((c, i) => {
+    const color = c.person === 'steve' ? 'var(--steve-color)' : 'var(--thomas-color)';
+    const bgColor = c.person === 'steve' ? 'rgba(88,166,255,0.15)' : 'rgba(63,185,80,0.15)';
+    const name = c.person === 'steve' ? 'Steve' : 'Thomas';
+    const projColor = PROJECT_COLORS[c.project] || '#484f58';
+    return `<li data-idx="${i}">
+      <div class="lb-score" style="background:${bgColor};color:${color}">${c.impactScore}</div>
+      <div style="flex:1;min-width:0">
+        <div class="lb-msg">${esc(c.message)}</div>
+        <div class="lb-meta">
+          ${formatDate(c.committedDate)}
+          <span class="commit-tag cat-${c.category}">${c.category}</span>
+          <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${c.project}</span>
+        </div>
+        <div class="lb-detail" id="lb-detail-${i}">
+          <strong>Score breakdown:</strong> ${c.category} base weight &times; size factor = <code style="background:var(--surface2);color:var(--text);padding:1px 5px;border-radius:3px">${c.impactScore}</code><br>
+          <strong>Changes:</strong> +${c.additions} / -${c.deletions} lines across ${c.filesChanged} file${c.filesChanged !== 1 ? 's' : ''}<br>
+          ${c.fullMessage && c.fullMessage !== c.message ? '<strong>Full message:</strong><br><span style="white-space:pre-wrap;opacity:0.7">' + esc(c.fullMessage) + '</span>' : ''}
+        </div>
+      </div>
+      <span class="lb-person" style="background:${bgColor};color:${color}">${name}</span>
+    </li>`;
+  }).join('');
+
+  el.querySelectorAll('li').forEach(li => {
+    li.addEventListener('click', () => {
+      const detail = document.getElementById('lb-detail-' + li.dataset.idx);
+      detail.classList.toggle('open');
+    });
+  });
+}
+
+// --- Synergies ---
+function renderSynergies(synergies) {
+  const el = document.getElementById('synergies');
+  if (!synergies || synergies.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:14px">No overlapping work detected in this period.</div>';
+    return;
+  }
+  el.innerHTML = synergies.map((s, i) => `
+    <div class="synergy-card" data-idx="${i}">
+      <div class="synergy-week">Week of ${formatDate(s.week)}</div>
+      <div style="font-size:13px;color:var(--text-muted)">
+        Thomas: ${s.thomasCommitCount} commits &middot; Steve: ${s.steveCommitCount} commits
+      </div>
+      <div class="synergy-keywords">
+        ${s.keywords.map(k => `<span class="synergy-kw">${esc(k)}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.synergy-card').forEach(card => {
+    card.addEventListener('click', () => openSynergyDrill(synergies[parseInt(card.dataset.idx)]));
+  });
+}
+
+function openSynergyDrill(synergy) {
+  const drillEl = document.getElementById('synergy-drill');
+  const week = synergy.week;
+  const nextWeek = new Date(new Date(week).getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const steveCommits = filteredData.steve.commits.filter(c => c.committedDate >= week && c.committedDate < nextWeek);
+  const thomasCommits = filteredData.thomas.commits.filter(c => c.committedDate >= week && c.committedDate < nextWeek);
+
+  drillEl.innerHTML = `
+    <div class="drill-header">
+      <span class="drill-title">Week of ${formatDate(week)} &mdash; Shared keywords: ${synergy.keywords.join(', ')}</span>
+      <button class="drill-close" onclick="this.closest('.drill-panel').classList.remove('open')">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="person-label thomas-label" style="margin-bottom:8px">Thomas (${thomasCommits.length})</div>
+        <div class="commit-list">${thomasCommits.map(c => commitItemHTML(c, 'var(--thomas-color)')).join('')}</div>
+      </div>
+      <div>
+        <div class="person-label steve-label" style="margin-bottom:8px">Steve (${steveCommits.length})</div>
+        <div class="commit-list">${steveCommits.map(c => commitItemHTML(c, 'var(--steve-color)')).join('')}</div>
+      </div>
+    </div>
+  `;
+  drillEl.classList.add('open');
+  attachCommitExpanders(drillEl);
+}
+
+// --- Weekly Table ---
+function renderWeeklyTable(steveCommits, thomasCommits) {
+  const weeks = {};
+  const addToWeek = (commits, key) => {
+    for (const c of commits) {
+      const wk = getWeekKey(c.committedDate);
+      if (!weeks[wk]) weeks[wk] = { steve: [], thomas: [] };
+      weeks[wk][key].push(c);
+    }
+  };
+  addToWeek(steveCommits, 'steve');
+  addToWeek(thomasCommits, 'thomas');
+  const sortedWeeks = Object.keys(weeks).sort().reverse();
+
+  const tbody = document.querySelector('#week-table tbody');
+  tbody.innerHTML = sortedWeeks.map((wk, i) => {
+    const sw = weeks[wk].steve;
+    const tw = weeks[wk].thomas;
+    const sImpact = Math.round(sw.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+    const tImpact = Math.round(tw.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+    const sTop = sw.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
+    const tTop = tw.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
+
+    return `<tr data-week="${wk}" data-idx="${i}" onclick="toggleWeekExpand(${i})">
+      <td>${formatDate(wk)}</td>
+      <td class="thomas-col">${tw.length}</td>
+      <td class="thomas-col"><strong>${tImpact}</strong> pts</td>
+      <td class="thomas-col top-work" title="${tTop ? esc(tTop.message) : ''}">${tTop ? esc(tTop.message.slice(0, 40)) : '—'}</td>
+      <td class="steve-col">${sw.length}</td>
+      <td class="steve-col"><strong>${sImpact}</strong> pts</td>
+      <td class="steve-col top-work" title="${sTop ? esc(sTop.message) : ''}">${sTop ? esc(sTop.message.slice(0, 40)) : '—'}</td>
+    </tr>
+    <tr class="week-expand" id="week-expand-${i}">
+      <td colspan="7" style="padding:0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px 16px;background:var(--surface2)">
+          <div>
+            <div class="person-label thomas-label" style="margin-bottom:4px">Thomas &mdash; ${tw.length} commits</div>
+            ${tw.map(c => commitItemHTML(c, 'var(--thomas-color)')).join('')}
+          </div>
+          <div>
+            <div class="person-label steve-label" style="margin-bottom:4px">Steve &mdash; ${sw.length} commits</div>
+            ${sw.map(c => commitItemHTML(c, 'var(--steve-color)')).join('')}
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Attach expanders after rendering
+  tbody.querySelectorAll('.commit-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const full = item.querySelector('.commit-full');
+      if (full) full.classList.toggle('open');
+    });
+  });
+}
+
+function toggleWeekExpand(idx) {
+  const row = document.getElementById('week-expand-' + idx);
+  row.classList.toggle('open');
+}
+
+// --- Commit List ---
+function commitItemHTML(c, personColor) {
+  const projColor = PROJECT_COLORS[c.project] || '#484f58';
+  const hasBody = c.fullMessage && c.fullMessage.split('\n').length > 1;
+  return `<div class="commit-item">
+    <div class="commit-score" style="background:${personColor}22;color:${personColor}">${c.impactScore}</div>
+    <div class="commit-body">
+      <div class="commit-msg-text">${esc(c.message)}</div>
+      <div class="commit-meta">
+        <span class="commit-date">${formatDate(c.committedDate)}</span>
+        <span class="commit-tag cat-${c.category}">${c.category}</span>
+        <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${c.project}</span>
+        <span style="color:var(--text-dim)">+${c.additions}/-${c.deletions}</span>
+      </div>
+      ${hasBody ? `<div class="commit-full">${esc(c.fullMessage)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function attachCommitExpanders(container) {
+  container.querySelectorAll('.commit-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const full = item.querySelector('.commit-full');
+      if (full) full.classList.toggle('open');
+    });
+  });
+}
+
+function renderCommitList(steveCommits, thomasCommits) {
+  let commits;
+  if (commitFilter === 'steve') commits = steveCommits.map(c => ({ ...c, person: 'steve' }));
+  else if (commitFilter === 'thomas') commits = thomasCommits.map(c => ({ ...c, person: 'thomas' }));
+  else commits = [
+    ...steveCommits.map(c => ({ ...c, person: 'steve' })),
+    ...thomasCommits.map(c => ({ ...c, person: 'thomas' })),
+  ];
+  commits.sort((a, b) => new Date(b.committedDate) - new Date(a.committedDate));
+
+  const el = document.getElementById('commit-list');
+  el.innerHTML = commits.slice(0, 60).map(c => {
+    const personColor = c.person === 'steve' ? 'var(--steve-color)' : 'var(--thomas-color)';
+    return commitItemHTML(c, personColor);
+  }).join('');
+
+  attachCommitExpanders(el);
+}
+
+// --- Event Listeners ---
+document.querySelectorAll('.date-btn[data-days]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.date-btn[data-days]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDays = parseInt(btn.dataset.days);
+    applyDateFilter(activeDays);
+  });
+});
+document.getElementById('custom-apply').addEventListener('click', applyCustomRange);
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    commitFilter = tab.dataset.tab;
+    renderCommitList(filteredData.steve.commits, filteredData.thomas.commits);
+  });
+});
+
+// --- Init ---
+(async () => {
+  try {
+    rawData = await fetchData();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('meta').textContent = `Last refreshed: ${new Date(rawData.generatedAt).toLocaleString()} · Thomas: ${rawData.thomas.totalCommits} total commits · Steve: ${rawData.steve.totalCommits} total commits`;
+    applyDateFilter(activeDays);
+  } catch (err) {
+    document.getElementById('loading').innerHTML = `<div class="error-msg">Failed to load data: ${esc(err.message)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>
