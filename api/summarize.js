@@ -4,9 +4,25 @@ const PROJECT_CONTEXT = {
     description: 'Post-sale AI agent handling reservation fulfillment — finding the right vehicle from affiliates, dispatch coordination, booking confirmations, changes, and complaint de-escalation (HEARD framework)',
     benefit: 'Automates the entire post-sale pipeline so customers get confirmed vehicles without manual staff coordination',
   },
-  'Winston': {
-    description: 'Pre-sale AI sales agent running the full funnel: qualify leads, generate quotes, close deals, book reservations, send payment links. Voice agent live on Dallas via ElevenLabs',
-    benefit: '24/7 automated sales that converts leads to bookings across SMS, email, phone, and chat',
+  'Winston Thomas': {
+    description: 'Thomas\'s test/development copy of the Winston sales agent — n8n workflows, tool sub-workflows, bug fixes, feature testing. Gets merged back into the SOT when stable.',
+    benefit: 'Lets Thomas develop and test changes to Winston without risking the live production agent',
+  },
+  'Winston SOT': {
+    description: 'Winston Source of Truth — the master system prompts, persona instructions, coaching rules, governance guardrails, and behavioral guidelines. This is the production version.',
+    benefit: 'Controls Winston\'s personality, accuracy, and compliance — the instructions that make the agent reliable',
+  },
+  'Winston Voice': {
+    description: 'ElevenLabs voice agent integration — inbound call handling, voice routing, speech-to-text/text-to-speech, phone system connection. Steve\'s work.',
+    benefit: 'Lets customers talk to Winston by phone, starting with Dallas market',
+  },
+  'Quote Engine': {
+    description: 'The generate_quote algorithm that selects the right vehicles and calculates pricing — hero vehicle hierarchy, occasion-based logic, pax capacity, affordable mix, variety enforcement',
+    benefit: 'Ensures every customer gets accurate, optimized vehicle quotes instantly across all markets',
+  },
+  'Fleet Manager': {
+    description: 'Vehicle inventory management — Rating Manager for cost/retail/margin, vehicle photos, sedan/limo mapping, fleet data across affiliates',
+    benefit: 'Keeps vehicle inventory accurate so quotes and fulfillment always have the right vehicles available',
   },
   'Website / SEO': {
     description: 'LimoCity marketing website (WordPress/Divi) — service pages, suburb SEO pages, schema markup, FAQ deployment, meta optimization across 8 markets',
@@ -77,7 +93,10 @@ export default async function handler(req, res) {
     // Build cluster data
     const clusterText = clusters.map((cl, i) => {
       const commitList = cl.commits.slice(0, 10).map(m => `  - ${m}`).join('\n');
-      return `[${i}] ${cl.person} - ${cl.project} (${cl.commits.length} commits, ${cl.activeDays} active days, ${cl.totalLines} lines changed):\n${commitList}`;
+      const priorList = (cl.priorCommits && cl.priorCommits.length > 0)
+        ? `\n  Prior work on this project (outside current period):\n${cl.priorCommits.slice(0, 5).map(m => `  - ${m}`).join('\n')}`
+        : '';
+      return `[${i}] ${cl.person} - ${cl.project} (${cl.commits.length} commits, ${cl.activeDays} active days, ${cl.totalLines} lines changed):\n${commitList}${priorList}`;
     }).join('\n\n');
 
     const prompt = `You are analyzing GitHub commit activity for a non-technical manager at LimoCity, a limo/transportation company.
@@ -89,19 +108,22 @@ For each commit cluster below, return a structured status card:
 
 1. "goal" — One sentence: what this specific work is building toward. Use the project context to understand the bigger picture, but be specific to what the commits actually show. Don't just repeat the project description — focus on what this particular batch of work is trying to achieve.
 
-2. "done" — Array of 2-5 accomplishments completed this period. Each item: short phrase starting with a past-tense verb (e.g., "Built...", "Fixed...", "Set up..."). Collapse similar commits into one item. Plain language — no developer jargon, no file names, no technical terms.
+2. "done" — Array of 2-5 accomplishments completed THIS period (from the main commit list). Each item: short phrase starting with a past-tense verb (e.g., "Built...", "Fixed...", "Set up..."). Collapse similar commits into one item. Plain language — no developer jargon, no file names, no technical terms.
 
-3. "remaining" — Array of 0-3 items that likely still need to happen based on the commits and project context. Empty array [] if work appears complete. Be conservative — only list what you can reasonably infer.
+3. "donePrior" — Array of 0-3 accomplishments completed BEFORE this period (from "Prior work" commits, if any). Same format as "done". Empty array [] if no prior work is listed. These represent previously completed milestones.
+
+4. "remaining" — Array of 0-3 items that likely still need to happen based on the commits and project context. Empty array [] if work appears complete. Be conservative — only list what you can reasonably infer.
 
 Rules:
 - Write for a business manager, not a developer
 - "done" items should be concrete and specific, not vague
+- "donePrior" items should summarize what was accomplished before the current period — only include if prior work commits are provided
 - "remaining" items should be logical next steps, not wild speculation
 - For small clusters (1-2 commits, quick fixes), keep it proportional — short goal, 1-2 done items, likely empty remaining
 - The goal should explain WHY this work matters, not just WHAT was done
 
 Return ONLY valid JSON with no other text:
-{ "cards": { "0": { "goal": "...", "done": ["...", "..."], "remaining": ["..."] }, "1": { ... } } }
+{ "cards": { "0": { "goal": "...", "done": ["...", "..."], "donePrior": ["..."], "remaining": ["..."] }, "1": { ... } } }
 Keys are the cluster index as strings.
 
 ---

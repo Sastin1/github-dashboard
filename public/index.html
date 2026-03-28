@@ -104,43 +104,55 @@
   .explainer.open { display: block; }
   .explainer code { color: var(--text); background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 
-  /* Leaderboard */
-  .leaderboard { list-style: none; }
-  .leaderboard li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
-  .leaderboard li:last-child { border-bottom: none; }
-  .leaderboard li:hover { background: rgba(255,255,255,0.02); }
-  .lb-score { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-  .lb-msg { font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lb-meta { font-size: 12px; color: var(--text-muted); }
-  .lb-person { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-  .lb-detail { display: none; font-size: 12px; color: var(--text-dim); padding: 8px 0 4px 52px; }
-  .lb-detail.open { display: block; }
-
-  /* Synergies */
-  .synergy-card { background: var(--surface2); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.15s; border: 1px solid transparent; }
-  .synergy-card:hover { border-color: var(--border); }
-  .synergy-week { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-  .synergy-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .synergy-kw { background: rgba(188,140,255,0.15); color: var(--purple); padding: 2px 10px; border-radius: 12px; font-size: 12px; }
-
-  /* Weekly table */
-  .week-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .week-table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .week-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
-  .week-table tr { cursor: pointer; }
-  .week-table tr:hover td { background: var(--surface2); }
-  .week-table .steve-col { color: var(--steve-color); }
-  .week-table .thomas-col { color: var(--thomas-color); }
-  .week-table .top-work { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text-dim); }
-  .week-expand { display: none; }
-  .week-expand.open { display: table-row; }
-  .week-expand td { padding: 0; }
-
-  /* Tabs */
-  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .tab { padding: 8px 16px; cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  /* GitHub Command Center */
+  .cc-section { margin-bottom: 24px; }
+  .cc-priority-banner { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.3); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .cc-priority-icon { font-size: 18px; flex-shrink: 0; }
+  .cc-priority-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--orange); }
+  .cc-priority-text { font-size: 13px; color: var(--text-muted); }
+  .cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 768px) { .cc-grid { grid-template-columns: 1fr; } }
+  .cc-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all 0.15s; }
+  .cc-card:hover { border-color: var(--text-dim); }
+  .cc-card.cc-top-priority { border-color: var(--orange); }
+  .cc-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .cc-card-name { font-size: 15px; font-weight: 600; }
+  .cc-status-badge { font-size: 10px; font-weight: 600; padding: 2px 9px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .cc-status-on-track { background: rgba(63,185,80,0.15); color: var(--green); }
+  .cc-status-at-risk { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .cc-status-blocked { background: rgba(248,81,73,0.15); color: var(--red); }
+  .cc-status-complete { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .cc-status-maintenance { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+  .cc-owner-badge { font-size: 10px; font-weight: 600; padding: 2px 9px; border-radius: 10px; background: var(--surface2); color: var(--text-dim); }
+  .cc-headline { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+  .cc-readiness-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .cc-readiness-bar { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .cc-readiness-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease-out; }
+  .cc-readiness-pct { font-size: 14px; font-weight: 700; min-width: 38px; text-align: right; }
+  .cc-momentum { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; display: inline-flex; align-items: center; gap: 3px; }
+  .cc-momentum-accelerating { background: rgba(63,185,80,0.12); color: var(--green); }
+  .cc-momentum-steady { background: rgba(88,166,255,0.12); color: var(--blue); }
+  .cc-momentum-slowing { background: rgba(210,153,34,0.12); color: var(--orange); }
+  .cc-momentum-stalled { background: rgba(248,81,73,0.12); color: var(--red); }
+  .cc-expand-hint { font-size: 11px; color: var(--text-dim); opacity: 0.6; margin-top: 6px; }
+  .cc-detail { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); animation: slideDown 0.2s ease-out; }
+  .cc-detail.open { display: block; }
+  .cc-detail-section { margin-bottom: 10px; }
+  .cc-detail-section:last-child { margin-bottom: 0; }
+  .cc-detail-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 4px; }
+  .cc-detail-list { list-style: none; padding: 0; margin: 0; }
+  .cc-detail-list.wins li { color: var(--text-muted); padding: 2px 0; font-size: 13px; }
+  .cc-detail-list.wins li::before { content: '\2713 '; color: var(--green); font-weight: 700; margin-right: 4px; }
+  .cc-detail-list.steps li { color: var(--blue); padding: 2px 0; font-size: 13px; }
+  .cc-detail-list.steps li::before { content: '\2192 '; font-weight: 700; margin-right: 4px; }
+  .cc-detail-list.risks li { color: var(--orange); padding: 2px 0; font-size: 13px; }
+  .cc-detail-list.risks li::before { content: '\26A0 '; font-weight: 700; margin-right: 4px; }
+  .cc-skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .cc-skeleton-line { height: 12px; background: var(--surface2); border-radius: 4px; margin-bottom: 10px; animation: digestPulse 1.5s ease-in-out infinite; }
+  .cc-skeleton-line:nth-child(1) { width: 40%; }
+  .cc-skeleton-line:nth-child(2) { width: 70%; height: 8px; }
+  .cc-skeleton-line:nth-child(3) { width: 100%; height: 8px; }
+  .cc-skeleton-line:nth-child(4) { width: 55%; height: 10px; }
 
   /* Digest cards */
   .digest-project { padding: 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 8px; }
@@ -161,8 +173,10 @@
   .status-list { list-style: none; padding: 0; margin: 0 0 0 2px; }
   .status-list.done li { color: var(--text-muted); padding: 1px 0; }
   .status-list.done li::before { content: '\2713 '; color: var(--green); font-weight: 700; margin-right: 4px; }
-  .status-list.remaining li { color: var(--text-dim); padding: 1px 0; }
-  .status-list.remaining li::before { content: '\25CB '; color: var(--text-dim); margin-right: 4px; }
+  .status-list.done-prior li { color: var(--text-dim); padding: 1px 0; }
+  .status-list.done-prior li::before { content: '\2713 '; color: #ccc; font-weight: 700; margin-right: 4px; }
+  .status-list.remaining li { color: var(--orange); padding: 1px 0; }
+  .status-list.remaining li::before { content: '\25CB '; color: var(--orange); font-weight: 700; margin-right: 4px; }
   @keyframes digestPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   @keyframes digestFadeIn { from { opacity: 0; } to { opacity: 1; } }
   .digest-breakdown { font-size: 12px; color: var(--text-dim); margin-left: 18px; display: flex; align-items: center; gap: 6px; }
@@ -215,60 +229,24 @@
     <!-- Digest (clustered accomplishments, respects date filter) -->
     <div class="chart-card" id="weekly-digest-section"></div>
 
-    <!-- Project Focus + Top Impact Commits -->
-    <div class="two-col">
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="card-header"><span class="card-title">Project Focus</span></div>
-        <div class="project-section">
-          <div class="person-label thomas-label">Thomas</div>
-          <div class="project-bar-wrap" id="thomas-project-bar"></div>
-          <div class="project-legend" id="thomas-project-legend"></div>
-          <div class="drill-panel" id="thomas-drill"></div>
-        </div>
-        <div class="project-section" style="margin-top:20px">
-          <div class="person-label steve-label">Steve</div>
-          <div class="project-bar-wrap" id="steve-project-bar"></div>
-          <div class="project-legend" id="steve-project-legend"></div>
-          <div class="drill-panel" id="steve-drill"></div>
-        </div>
-      </div>
-      <div class="chart-card" style="margin-bottom:0">
-        <div class="card-header"><span class="card-title">Top Impact Commits</span></div>
-        <ul class="leaderboard" id="leaderboard"></ul>
-      </div>
-    </div>
+    <!-- GitHub Command Center -->
+    <div class="chart-card cc-section" id="command-center-section"></div>
 
-    <!-- Synergies -->
+    <!-- Project Focus (full-width) -->
     <div class="chart-card">
-      <div class="card-header"><span class="card-title">Synergies &amp; Overlaps</span></div>
-      <div id="synergies"></div>
-      <div class="drill-panel" id="synergy-drill"></div>
-    </div>
-
-    <!-- Weekly breakdown (full history) -->
-    <div class="chart-card">
-      <div class="card-header"><span class="card-title">Weekly Breakdown</span></div>
-      <div style="overflow-x:auto">
-        <table class="week-table" id="week-table">
-          <thead><tr>
-            <th>Week of</th>
-            <th>Thomas Commits</th><th>Thomas Impact</th><th>Thomas Top Work</th>
-            <th>Steve Commits</th><th>Steve Impact</th><th>Steve Top Work</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
+      <div class="card-header"><span class="card-title">Project Focus</span></div>
+      <div class="project-section">
+        <div class="person-label thomas-label">Thomas</div>
+        <div class="project-bar-wrap" id="thomas-project-bar"></div>
+        <div class="project-legend" id="thomas-project-legend"></div>
+        <div class="drill-panel" id="thomas-drill"></div>
       </div>
-    </div>
-
-    <!-- Recent commits -->
-    <div class="chart-card">
-      <div class="card-header"><span class="card-title">All Commits</span></div>
-      <div class="tab-bar">
-        <div class="tab active" data-tab="all">All</div>
-        <div class="tab" data-tab="thomas">Thomas</div>
-        <div class="tab" data-tab="steve">Steve</div>
+      <div class="project-section" style="margin-top:20px">
+        <div class="person-label steve-label">Steve</div>
+        <div class="project-bar-wrap" id="steve-project-bar"></div>
+        <div class="project-legend" id="steve-project-legend"></div>
+        <div class="drill-panel" id="steve-drill"></div>
       </div>
-      <div class="commit-list" id="commit-list"></div>
     </div>
   </div>
 </div>
@@ -278,15 +256,15 @@
 let rawData = null;
 let filteredData = null;
 let activeDays = 30;
-let commitFilter = 'all';
 let charts = {};
 
 // --- Project Colors ---
 const PROJECT_COLORS = {
-  'James': '#3fb950', 'Winston': '#d29922', 'Website / SEO': '#58a6ff',
-  'n8n / Automation': '#39d2c0', 'Database / Infra': '#bc8cff', 'Forms / CRM': '#f778ba',
-  'Telephony': '#f85149', 'Docs / Admin': '#6e7681', 'Marketing': '#ff7b72',
-  'Tools / Setup': '#8b949e', 'Other': '#484f58',
+  'James': '#3fb950', 'Winston Thomas': '#d29922', 'Winston SOT': '#e3b341', 'Winston Voice': '#f0883e',
+  'Quote Engine': '#f778ba', 'Fleet Manager': '#ff7b72',
+  'Website / SEO': '#58a6ff', 'n8n / Automation': '#39d2c0', 'Database / Infra': '#bc8cff',
+  'Forms / CRM': '#da70d6', 'Telephony': '#f85149', 'Docs / Admin': '#6e7681',
+  'Marketing': '#e06c75', 'Tools / Setup': '#8b949e', 'Other': '#484f58',
 };
 const CAT_COLORS = {
   feature: '#58a6ff', bugfix: '#f85149', deploy: '#3fb950', docs: '#8b949e',
@@ -359,12 +337,9 @@ function render() {
   renderSummary(ss, ts);
   renderWeeklyDigest(d.steve.commits, d.thomas.commits);
   renderImpactTrend(d.steve.commits, d.thomas.commits);
+  renderCommandCenter(d.steve.commits, d.thomas.commits);
   renderProjectFocus(d.thomas.commits, 'thomas');
   renderProjectFocus(d.steve.commits, 'steve');
-  renderLeaderboard(d.steve.commits, d.thomas.commits);
-  renderSynergies(d.synergies);
-  renderWeeklyTable(d.steve.commits, d.thomas.commits);
-  renderCommitList(d.steve.commits, d.thomas.commits);
 }
 
 // --- Summary Cards ---
@@ -513,9 +488,6 @@ function clusterByProject(commits) {
 }
 
 function renderWeeklyDigest(steveCommits, thomasCommits) {
-  const steveRecent = steveCommits;
-  const thomasRecent = thomasCommits;
-
   let dateLabel;
   const activeBtn = document.querySelector('.date-btn[data-days].active');
   if (activeBtn) {
@@ -528,11 +500,11 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
     dateLabel = `${formatDate(from)} to ${formatDate(to)}`;
   }
 
-  const sImpact = Math.round(steveRecent.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
-  const tImpact = Math.round(thomasRecent.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+  const sImpact = Math.round(steveCommits.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
+  const tImpact = Math.round(thomasCommits.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
 
-  const thomasClusters = clusterByProject(thomasRecent);
-  const steveClusters = clusterByProject(steveRecent);
+  const thomasClusters = clusterByProject(thomasCommits);
+  const steveClusters = clusterByProject(steveCommits);
 
   function renderPersonDigest(clusters, person, personColor) {
     if (clusters.length === 0) return '<div class="digest-empty">No activity in this period</div>';
@@ -568,14 +540,14 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
       <div style="min-width:0">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
           <span class="person-label thomas-label" style="margin:0">Thomas</span>
-          <span style="font-size:14px;color:var(--thomas-color);font-weight:700">${thomasRecent.length} commits \u00b7 ${tImpact} pts</span>
+          <span style="font-size:14px;color:var(--thomas-color);font-weight:700">${thomasCommits.length} commits \u00b7 ${tImpact} pts</span>
         </div>
         ${renderPersonDigest(thomasClusters, 'thomas', 'var(--thomas-color)')}
       </div>
       <div style="min-width:0">
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
           <span class="person-label steve-label" style="margin:0">Steve</span>
-          <span style="font-size:14px;color:var(--steve-color);font-weight:700">${steveRecent.length} commits \u00b7 ${sImpact} pts</span>
+          <span style="font-size:14px;color:var(--steve-color);font-weight:700">${steveCommits.length} commits \u00b7 ${sImpact} pts</span>
         </div>
         ${renderPersonDigest(steveClusters, 'steve', 'var(--steve-color)')}
       </div>
@@ -586,12 +558,19 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
   el.querySelectorAll('.digest-detail').forEach(panel => attachCommitExpanders(panel));
 
   // Build clusters for AI summarization and fire async
+  // Include prior commits (from rawData but outside current filter) for context
   const allClusters = [];
   for (const cl of thomasClusters) {
-    allClusters.push({ person: 'thomas', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), _idx: allClusters.length, _elId: `digest-headline-thomas-${thomasClusters.indexOf(cl)}` });
+    const priorCommits = (rawData.thomas.commits || [])
+      .filter(c => c.project === cl.project && !cl.items.some(ci => ci.committedDate === c.committedDate && ci.message === c.message))
+      .slice(0, 5).map(c => c.message);
+    allClusters.push({ person: 'thomas', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), priorCommits, _elId: `digest-headline-thomas-${thomasClusters.indexOf(cl)}` });
   }
   for (const cl of steveClusters) {
-    allClusters.push({ person: 'steve', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), _idx: allClusters.length, _elId: `digest-headline-steve-${steveClusters.indexOf(cl)}` });
+    const priorCommits = (rawData.steve.commits || [])
+      .filter(c => c.project === cl.project && !cl.items.some(ci => ci.committedDate === c.committedDate && ci.message === c.message))
+      .slice(0, 5).map(c => c.message);
+    allClusters.push({ person: 'steve', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), priorCommits, _elId: `digest-headline-steve-${steveClusters.indexOf(cl)}` });
   }
   if (allClusters.length > 0) fetchSummaries(allClusters);
 }
@@ -657,6 +636,10 @@ function renderStatusCard(card) {
     html += `<div class="status-section-label">Done</div>`;
     html += `<ul class="status-list done">${card.done.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`;
   }
+  if (card.donePrior && card.donePrior.length > 0) {
+    html += `<div class="status-section-label">Previously Completed</div>`;
+    html += `<ul class="status-list done-prior">${card.donePrior.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`;
+  }
   if (card.remaining && card.remaining.length > 0) {
     html += `<div class="status-section-label">Remaining</div>`;
     html += `<ul class="status-list remaining">${card.remaining.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
@@ -686,6 +669,7 @@ async function fetchSummaries(clusters) {
         person: cl.person, project: cl.project,
         activeDays: cl.activeDays, totalLines: cl.totalLines,
         commits: cl.commits,
+        priorCommits: cl.priorCommits || [],
       }));
       const res = await fetch('/api/summarize', {
         method: 'POST',
@@ -771,160 +755,6 @@ function openProjectDrill(person, project) {
   attachCommitExpanders(drillEl);
 }
 
-// --- Leaderboard ---
-function renderLeaderboard(steveCommits, thomasCommits) {
-  const all = [
-    ...steveCommits.map(c => ({ ...c, person: 'steve' })),
-    ...thomasCommits.map(c => ({ ...c, person: 'thomas' })),
-  ].sort((a, b) => b.impactScore - a.impactScore).slice(0, 10);
-
-  const el = document.getElementById('leaderboard');
-  el.innerHTML = all.map((c, i) => {
-    const color = c.person === 'steve' ? 'var(--steve-color)' : 'var(--thomas-color)';
-    const bgColor = c.person === 'steve' ? 'rgba(88,166,255,0.15)' : 'rgba(63,185,80,0.15)';
-    const name = c.person === 'steve' ? 'Steve' : 'Thomas';
-    const projColor = PROJECT_COLORS[c.project] || '#484f58';
-    return `<li data-idx="${i}">
-      <div class="lb-score" style="background:${bgColor};color:${color}">${c.impactScore}</div>
-      <div style="flex:1;min-width:0">
-        <div class="lb-msg">${esc(c.message)}</div>
-        <div class="lb-meta">
-          ${formatDate(c.committedDate)}
-          <span class="commit-tag cat-${c.category}">${c.category}</span>
-          <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${c.project}</span>
-        </div>
-        <div class="lb-detail" id="lb-detail-${i}">
-          <strong>Score breakdown:</strong> ${c.category} base weight &times; size factor = <code style="background:var(--surface2);color:var(--text);padding:1px 5px;border-radius:3px">${c.impactScore}</code><br>
-          <strong>Changes:</strong> +${c.additions} / -${c.deletions} lines across ${c.filesChanged} file${c.filesChanged !== 1 ? 's' : ''}<br>
-          ${c.fullMessage && c.fullMessage !== c.message ? '<strong>Full message:</strong><br><span style="white-space:pre-wrap;opacity:0.7">' + esc(c.fullMessage) + '</span>' : ''}
-        </div>
-      </div>
-      <span class="lb-person" style="background:${bgColor};color:${color}">${name}</span>
-    </li>`;
-  }).join('');
-
-  el.querySelectorAll('li').forEach(li => {
-    li.addEventListener('click', () => {
-      const detail = document.getElementById('lb-detail-' + li.dataset.idx);
-      detail.classList.toggle('open');
-    });
-  });
-}
-
-// --- Synergies ---
-function renderSynergies(synergies) {
-  const el = document.getElementById('synergies');
-  if (!synergies || synergies.length === 0) {
-    el.innerHTML = '<div style="color:var(--text-dim);font-size:14px">No overlapping work detected in this period.</div>';
-    return;
-  }
-  el.innerHTML = synergies.map((s, i) => `
-    <div class="synergy-card" data-idx="${i}">
-      <div class="synergy-week">Week of ${formatDate(s.week)}</div>
-      <div style="font-size:13px;color:var(--text-muted)">
-        Thomas: ${s.thomasCommitCount} commits &middot; Steve: ${s.steveCommitCount} commits
-      </div>
-      <div class="synergy-keywords">
-        ${s.keywords.map(k => `<span class="synergy-kw">${esc(k)}</span>`).join('')}
-      </div>
-    </div>
-  `).join('');
-
-  el.querySelectorAll('.synergy-card').forEach(card => {
-    card.addEventListener('click', () => openSynergyDrill(synergies[parseInt(card.dataset.idx)]));
-  });
-}
-
-function openSynergyDrill(synergy) {
-  const drillEl = document.getElementById('synergy-drill');
-  const week = synergy.week;
-  const nextWeek = new Date(new Date(week).getTime() + 7 * 86400000).toISOString().slice(0, 10);
-  const steveCommits = filteredData.steve.commits.filter(c => c.committedDate >= week && c.committedDate < nextWeek);
-  const thomasCommits = filteredData.thomas.commits.filter(c => c.committedDate >= week && c.committedDate < nextWeek);
-
-  drillEl.innerHTML = `
-    <div class="drill-header">
-      <span class="drill-title">Week of ${formatDate(week)} &mdash; Shared keywords: ${synergy.keywords.join(', ')}</span>
-      <button class="drill-close" onclick="this.closest('.drill-panel').classList.remove('open')">&times;</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div>
-        <div class="person-label thomas-label" style="margin-bottom:8px">Thomas (${thomasCommits.length})</div>
-        <div class="commit-list">${thomasCommits.map(c => commitItemHTML(c, 'var(--thomas-color)')).join('')}</div>
-      </div>
-      <div>
-        <div class="person-label steve-label" style="margin-bottom:8px">Steve (${steveCommits.length})</div>
-        <div class="commit-list">${steveCommits.map(c => commitItemHTML(c, 'var(--steve-color)')).join('')}</div>
-      </div>
-    </div>
-  `;
-  drillEl.classList.add('open');
-  attachCommitExpanders(drillEl);
-}
-
-// --- Weekly Table ---
-function renderWeeklyTable(steveCommits, thomasCommits) {
-  const weeks = {};
-  const addToWeek = (commits, key) => {
-    for (const c of commits) {
-      const wk = getWeekKey(c.committedDate);
-      if (!weeks[wk]) weeks[wk] = { steve: [], thomas: [] };
-      weeks[wk][key].push(c);
-    }
-  };
-  addToWeek(steveCommits, 'steve');
-  addToWeek(thomasCommits, 'thomas');
-  const sortedWeeks = Object.keys(weeks).sort().reverse();
-
-  const tbody = document.querySelector('#week-table tbody');
-  tbody.innerHTML = sortedWeeks.map((wk, i) => {
-    const sw = weeks[wk].steve;
-    const tw = weeks[wk].thomas;
-    const sImpact = Math.round(sw.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
-    const tImpact = Math.round(tw.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
-    const sTop = sw.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
-    const tTop = tw.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
-
-    return `<tr data-week="${wk}" data-idx="${i}" onclick="toggleWeekExpand(${i})">
-      <td>${formatDate(wk)}</td>
-      <td class="thomas-col">${tw.length}</td>
-      <td class="thomas-col"><strong>${tImpact}</strong> pts</td>
-      <td class="thomas-col top-work" title="${tTop ? esc(tTop.message) : ''}">${tTop ? esc(tTop.message.slice(0, 40)) : '—'}</td>
-      <td class="steve-col">${sw.length}</td>
-      <td class="steve-col"><strong>${sImpact}</strong> pts</td>
-      <td class="steve-col top-work" title="${sTop ? esc(sTop.message) : ''}">${sTop ? esc(sTop.message.slice(0, 40)) : '—'}</td>
-    </tr>
-    <tr class="week-expand" id="week-expand-${i}">
-      <td colspan="7" style="padding:0">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px 16px;background:var(--surface2)">
-          <div>
-            <div class="person-label thomas-label" style="margin-bottom:4px">Thomas &mdash; ${tw.length} commits</div>
-            ${tw.map(c => commitItemHTML(c, 'var(--thomas-color)')).join('')}
-          </div>
-          <div>
-            <div class="person-label steve-label" style="margin-bottom:4px">Steve &mdash; ${sw.length} commits</div>
-            ${sw.map(c => commitItemHTML(c, 'var(--steve-color)')).join('')}
-          </div>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Attach expanders after rendering
-  tbody.querySelectorAll('.commit-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const full = item.querySelector('.commit-full');
-      if (full) full.classList.toggle('open');
-    });
-  });
-}
-
-function toggleWeekExpand(idx) {
-  const row = document.getElementById('week-expand-' + idx);
-  row.classList.toggle('open');
-}
-
 // --- Commit List ---
 function commitItemHTML(c, personColor) {
   const projColor = PROJECT_COLORS[c.project] || '#484f58';
@@ -953,23 +783,175 @@ function attachCommitExpanders(container) {
   });
 }
 
-function renderCommitList(steveCommits, thomasCommits) {
-  let commits;
-  if (commitFilter === 'steve') commits = steveCommits.map(c => ({ ...c, person: 'steve' }));
-  else if (commitFilter === 'thomas') commits = thomasCommits.map(c => ({ ...c, person: 'thomas' }));
-  else commits = [
+// --- GitHub Command Center ---
+function buildCommandCenterPayload(steveCommits, thomasCommits) {
+  const allCommits = [
     ...steveCommits.map(c => ({ ...c, person: 'steve' })),
     ...thomasCommits.map(c => ({ ...c, person: 'thomas' })),
   ];
-  commits.sort((a, b) => new Date(b.committedDate) - new Date(a.committedDate));
 
-  const el = document.getElementById('commit-list');
-  el.innerHTML = commits.slice(0, 60).map(c => {
-    const personColor = c.person === 'steve' ? 'var(--steve-color)' : 'var(--thomas-color)';
-    return commitItemHTML(c, personColor);
-  }).join('');
+  // Group by project
+  const groups = {};
+  for (const c of allCommits) {
+    if (c.project === 'Other') continue;
+    if (!groups[c.project]) groups[c.project] = [];
+    groups[c.project].push(c);
+  }
 
-  attachCommitExpanders(el);
+  // Build date range label
+  let dateRange;
+  const activeBtn = document.querySelector('.date-btn[data-days].active');
+  if (activeBtn) {
+    const days = parseInt(activeBtn.dataset.days);
+    dateRange = days === 0 ? 'all time' : `last ${days} days`;
+  } else {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    dateRange = `${from} to ${to}`;
+  }
+
+  return Object.entries(groups).map(([name, commits]) => {
+    const activeDays = new Set(commits.map(c => c.committedDate.slice(0, 10))).size;
+    const totalLines = commits.reduce((s, c) => s + c.additions + c.deletions, 0);
+    const contributors = [...new Set(commits.map(c => c.person))].map(p => p === 'steve' ? 'Steve' : 'Thomas');
+    return {
+      name,
+      commitCount: commits.length,
+      activeDays,
+      totalLines,
+      contributors,
+      dateRange,
+      commits: commits.map(c => c.message).slice(0, 6),
+    };
+  }).sort((a, b) => b.commitCount - a.commitCount).slice(0, 10);
+}
+
+function renderCommandCenter(steveCommits, thomasCommits) {
+  const el = document.getElementById('command-center-section');
+
+  // Date label
+  let dateLabel;
+  const activeBtn = document.querySelector('.date-btn[data-days].active');
+  if (activeBtn) {
+    const days = parseInt(activeBtn.dataset.days);
+    dateLabel = days === 0 ? 'All Time' : `Last ${days} Days`;
+  } else {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    dateLabel = `${formatDate(from)} to ${formatDate(to)}`;
+  }
+
+  const payload = buildCommandCenterPayload(steveCommits, thomasCommits);
+
+  if (payload.length === 0) {
+    el.innerHTML = `
+      <div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div>
+      <div style="color:var(--text-dim);font-size:13px;padding:8px 0">No project activity in this period.</div>`;
+    return;
+  }
+
+  // Show loading skeletons
+  const skeletonCount = Math.min(payload.length, 6);
+  el.innerHTML = `
+    <div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div>
+    <div class="cc-grid">
+      ${Array(skeletonCount).fill('').map(() => `
+        <div class="cc-skeleton">
+          <div class="cc-skeleton-line"></div>
+          <div class="cc-skeleton-line"></div>
+          <div class="cc-skeleton-line"></div>
+          <div class="cc-skeleton-line"></div>
+        </div>`).join('')}
+    </div>`;
+
+  // Fire async API call
+  fetchCommandCenter(payload, dateLabel, el);
+}
+
+async function fetchCommandCenter(payload, dateLabel, containerEl) {
+  try {
+    const res = await fetch('/api/command-center', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projects: payload }),
+    });
+    if (!res.ok) {
+      containerEl.innerHTML = `<div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div><div style="color:var(--text-dim);font-size:13px;padding:8px 0">Could not load strategic assessment. Try refreshing.</div>`;
+      return;
+    }
+    const data = await res.json();
+    if (!data.initiatives || data.initiatives.length === 0) {
+      containerEl.innerHTML = `<div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div><div style="color:var(--text-dim);font-size:13px;padding:8px 0">Strategic assessment unavailable. Try refreshing.</div>`;
+      return;
+    }
+
+    const MOMENTUM_ICONS = { accelerating: '\u25B2', steady: '\u25B6', slowing: '\u25BC', stalled: '\u25CF' };
+    const STATUS_ORDER = { blocked: 0, 'at-risk': 1, 'on-track': 2, maintenance: 3, complete: 4 };
+
+    // Sort: top priority first, then by status severity
+    const sorted = data.initiatives.sort((a, b) => {
+      if (a.name === data.topPriority) return -1;
+      if (b.name === data.topPriority) return 1;
+      return (STATUS_ORDER[a.status] ?? 5) - (STATUS_ORDER[b.status] ?? 5);
+    });
+
+    function readinessColor(pct) {
+      if (pct >= 76) return 'var(--green)';
+      if (pct >= 51) return 'var(--blue)';
+      if (pct >= 26) return 'var(--orange)';
+      return 'var(--red)';
+    }
+
+    let html = `<div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div>`;
+
+    // Priority banner
+    if (data.topPriority) {
+      html += `<div class="cc-priority-banner">
+        <span class="cc-priority-icon">\u26A0</span>
+        <div>
+          <div class="cc-priority-label">Top Priority: ${esc(data.topPriority)}</div>
+          <div class="cc-priority-text">${esc(data.topPriorityReason || '')}</div>
+        </div>
+      </div>`;
+    }
+
+    // Initiative cards
+    html += '<div class="cc-grid">';
+    sorted.forEach((init, i) => {
+      const isTop = init.name === data.topPriority;
+      const projColor = PROJECT_COLORS[init.name] || '#484f58';
+      const barColor = readinessColor(init.readiness);
+      const momentumIcon = MOMENTUM_ICONS[init.momentum] || '';
+      const ownerLabel = init.owner === 'both' ? 'Both' : init.owner === 'steve' ? 'Steve' : 'Thomas';
+      const statusClass = 'cc-status-' + (init.status || 'on-track').replace(/\s/g, '-');
+
+      html += `<div class="cc-card${isTop ? ' cc-top-priority' : ''}" onclick="document.getElementById('cc-detail-${i}').classList.toggle('open')">
+        <div class="cc-card-header">
+          <span class="cc-card-name" style="color:${projColor}">${esc(init.name)}</span>
+          <span class="cc-status-badge ${statusClass}">${esc(init.status)}</span>
+          <span class="cc-owner-badge">${ownerLabel}</span>
+          <span class="cc-momentum cc-momentum-${init.momentum || 'steady'}">${momentumIcon} ${esc(init.momentum || 'steady')}</span>
+        </div>
+        <div class="cc-headline">${esc(init.headline || '')}</div>
+        <div class="cc-readiness-row">
+          <div class="cc-readiness-bar"><div class="cc-readiness-bar-fill" style="width:${init.readiness}%;background:${barColor}"></div></div>
+          <span class="cc-readiness-pct" style="color:${barColor}">${init.readiness}%</span>
+        </div>
+        <div class="cc-expand-hint">click for details</div>
+        <div class="cc-detail" id="cc-detail-${i}">
+          ${init.recentWins && init.recentWins.length > 0 ? `<div class="cc-detail-section"><div class="cc-detail-label">Recent Wins</div><ul class="cc-detail-list wins">${init.recentWins.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>` : ''}
+          ${init.nextSteps && init.nextSteps.length > 0 ? `<div class="cc-detail-section"><div class="cc-detail-label">Next Steps</div><ul class="cc-detail-list steps">${init.nextSteps.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>` : ''}
+          ${init.risks && init.risks.length > 0 ? `<div class="cc-detail-section"><div class="cc-detail-label">Risks</div><ul class="cc-detail-list risks">${init.risks.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+
+    containerEl.innerHTML = html;
+  } catch (err) {
+    console.error('Command center fetch error:', err);
+    containerEl.innerHTML = `<div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div><div style="color:var(--text-dim);font-size:13px;padding:8px 0">Could not load strategic assessment. Try refreshing.</div>`;
+  }
 }
 
 // --- Event Listeners ---
@@ -982,14 +964,6 @@ document.querySelectorAll('.date-btn[data-days]').forEach(btn => {
   });
 });
 document.getElementById('custom-apply').addEventListener('click', applyCustomRange);
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    commitFilter = tab.dataset.tab;
-    renderCommitList(filteredData.steve.commits, filteredData.thomas.commits);
-  });
-});
 
 // --- Init ---
 (async () => {

@@ -9,6 +9,9 @@
     },
     "api/summarize.js": {
       "maxDuration": 30
+    },
+    "api/command-center.js": {
+      "maxDuration": 30
     }
   }
 }

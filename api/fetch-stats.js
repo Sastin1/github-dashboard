@@ -25,16 +25,24 @@ function categorizeCommit(message) {
 function getProject(message) {
   const msg = message.toLowerCase();
   // Order matters — more specific matches first
+  // Fleet Manager & Quote Engine before James/Winston (they'd otherwise fall to Other)
+  if (/fleet.manager|rating.manager|vehicle.*(inventory|photo)|photo.status|sedan.*limo|cost.*retail.*margin/.test(msg)) return 'Fleet Manager';
+  if (/generate.quote|quote.algorithm|quote.*v\d|selection.logic|pax.*(floor|fallback)|hero.*hierarchy|photo.gate|variety.enforcement|affordable.mix|party.bus.split|prom.*section|vehicle.*color.*feature/.test(msg)) return 'Quote Engine';
   if (/james|handoff|fulfillment|checkout|reservation|payment.?link|pay-limocity/.test(msg)) return 'James';
-  if (/winston|elevenlabs|coaching|voice.*tool|voice.*router|call.*script/.test(msg)) return 'Winston';
-  if (/seo|schema|faq|suburb|meta title|json-ld|breadcrumb|divi|wordpress|wp_|wpcode|yoast|page.*builder/.test(msg)) return 'Website / SEO';
+  if (/elevenlabs|voice.*(agent|tool|router|prompt|tracking|call)|voice_calls|post.call.handler/.test(msg)) return 'Winston Voice';
+  if (/winston.*(sot|source of truth|system prompt|persona|coaching|instruction|guardrail|governance)/.test(msg)) return 'Winston SOT';
+  if (/winston|bug\s*\d+|e2e test|verification.*checklist|round\s*\d+/.test(msg)) return 'Winston Thomas';
+  if (/seo|json.ld|schema.*page|\bfaq\b|suburb|meta.title|breadcrumb|divi|wordpress|wp_|wpcode|yoast|page.*builder|wp.rocket|\bcta\b|hero.*section/.test(msg)) return 'Website / SEO';
+  // Specific infra/telephony patterns before n8n (which catches generic "workflow"/"trigger")
+  if (/twilio|10dlc/.test(msg)) return 'Telephony';
+  if (/cross.channel.memory|knowledge.base|pgvector/.test(msg)) return 'Database / Infra';
   if (/n8n|workflow|trigger|webhook|polling|orchestrat|execution/.test(msg)) return 'n8n / Automation';
   if (/supabase|database|migration\s*\d|sql|table|postgres/.test(msg)) return 'Database / Infra';
-  if (/form|gravity|lead|zoho|crm|funnel/.test(msg)) return 'Forms / CRM';
-  if (/phone|ringcentral|sms|voice route|inbound|outbound call/.test(msg)) return 'Telephony';
-  if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}|system map|cleanup|stale/.test(msg)) return 'Docs / Admin';
-  if (/google ads|bidding|cpc|ppc|gbp|analytics|ga4/.test(msg)) return 'Marketing';
-  if (/skill|memory|backup|repo cleanup|gitignore|\.env/.test(msg)) return 'Tools / Setup';
+  if (/\bforms?\b|gravity|lead|zoho|crm|funnel/.test(msg)) return 'Forms / CRM';
+  if (/phone|ringcentral|\bsms\b|voice route|inbound|outbound call/.test(msg)) return 'Telephony';
+  if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}|system map|cleanup|stale|design doc|onboarding.*guide|architecture.*vis/.test(msg)) return 'Docs / Admin';
+  if (/google ads|bidding|cpc|ppc|gbp|analytics|ga4|conversion.*crash|tracking.*broke/.test(msg)) return 'Marketing';
+  if (/skill|memory|backup|repo cleanup|gitignore|\.env|eval.dashboard|training.module/.test(msg)) return 'Tools / Setup';
   return 'Other';
 }
 
@@ -214,7 +222,7 @@ function enrichCommits(nodes) {
       authorName: n.author.name,
       authorLogin: n.author.user?.login || null,
       category,
-      project: getProject(n.message),
+      project: getProject(n.message.split('\n')[0]),
     };
     commit.impactScore = scoreCommit(commit);
     return commit;
