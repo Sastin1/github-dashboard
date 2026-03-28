@@ -6,8 +6,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  const debug = req.query?.debug === '1';
   if (!apiKey) {
-    return res.status(200).json({ summaries: {} });
+    return res.status(200).json({ summaries: {}, ...(debug && { _debug: 'no api key' }) });
   }
 
   try {
@@ -59,7 +60,7 @@ ${clusterText}`;
     if (!response.ok) {
       const errText = await response.text();
       console.error('Anthropic API error:', response.status, errText);
-      return res.status(200).json({ summaries: {} });
+      return res.status(200).json({ summaries: {}, ...(debug && { _debug: `API ${response.status}: ${errText.slice(0, 200)}` }) });
     }
 
     const data = await response.json();
@@ -77,6 +78,6 @@ ${clusterText}`;
 
   } catch (err) {
     console.error('Summarize error:', err);
-    return res.status(200).json({ summaries: {} });
+    return res.status(200).json({ summaries: {}, ...(debug && { _debug: `catch: ${err.message}` }) });
   }
 }

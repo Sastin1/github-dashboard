@@ -531,6 +531,7 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
       const projColor = PROJECT_COLORS[cl.project] || '#484f58';
       const id = `digest-${person}-${i}`;
       const headlineId = `digest-headline-${person}-${i}`;
+      const localSummary = generateLocalSummary(cl);
       return `<div class="digest-project" onclick="document.getElementById('${id}').classList.toggle('open')">
         <div class="digest-row">
           <span class="digest-dot" style="background:${projColor}"></span>
@@ -538,7 +539,7 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
           <span class="digest-effort-badge" style="background:${cl.effort.color}22;color:${cl.effort.color}">${cl.effort.label}</span>
           <span class="digest-stats">${cl.totalPts} pts \u00b7 ${cl.items.length} commit${cl.items.length > 1 ? 's' : ''}</span>
         </div>
-        <div class="digest-headline digest-loading" id="${headlineId}">${esc(cl.topCommit.message)}</div>
+        <div class="digest-headline" id="${headlineId}">${esc(localSummary)}</div>
         <div class="digest-breakdown">${cl.breakdown}<span class="digest-expand-hint">click to expand</span></div>
         <div class="digest-detail" id="${id}">
           ${cl.items.map(c => commitItemHTML(c, personColor)).join('')}
@@ -584,8 +585,68 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
   if (allClusters.length > 0) fetchSummaries(allClusters);
 }
 
+// --- Client-Side Summary Generation (fallback when AI unavailable) ---
+function generateLocalSummary(cl) {
+  const n = cl.items.length;
+  const cats = {};
+  for (const c of cl.items) cats[c.category] = (cats[c.category] || 0) + 1;
+  const topCat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
+  const days = cl.activeDays;
+  const lines = cl.totalLines;
+
+  // Verb phrases by primary category
+  const verbs = {
+    feature: ['Built new functionality for', 'Added new capabilities to', 'Developed features for'],
+    bugfix: ['Fixed issues in', 'Resolved bugs in', 'Addressed problems in'],
+    deploy: ['Deployed updates to', 'Rolled out changes for', 'Released updates to'],
+    refactor: ['Restructured and cleaned up', 'Improved the codebase for', 'Reorganized'],
+    ops: ['Set up automation for', 'Configured workflows for', 'Automated processes for'],
+    test: ['Added testing for', 'Verified and tested', 'Built test coverage for'],
+    infra: ['Updated infrastructure for', 'Set up backend systems for', 'Configured environment for'],
+    docs: ['Updated documentation for', 'Documented processes for', 'Wrote up notes for'],
+    design: ['Designed architecture for', 'Planned and documented', 'Created designs for'],
+    other: ['Worked on', 'Made updates to', 'Contributed to'],
+  };
+
+  // Pick a verb (deterministic based on project name length for consistency)
+  const verbList = verbs[topCat] || verbs.other;
+  const verb = verbList[cl.project.length % verbList.length];
+
+  // Scope description
+  let scope;
+  if (n === 1) scope = 'a quick, single update';
+  else if (n <= 3 && days <= 1) scope = 'a focused session';
+  else if (n <= 5 && days <= 2) scope = `${n} changes over ${days === 1 ? 'one session' : 'a couple of sessions'}`;
+  else if (days <= 4) scope = `${n} changes across ${days} working days`;
+  else scope = `a sustained effort with ${n} changes over ${days} days`;
+
+  // Completion signal based on most recent commit's category
+  const recent = cl.items.sort((a, b) => new Date(b.committedDate) - new Date(a.committedDate))[0];
+  let status = '';
+  if (recent.category === 'deploy') status = ' Work appears deployed and live.';
+  else if (recent.category === 'test') status = ' Currently in testing phase.';
+  else if (recent.category === 'bugfix') status = ' Recent activity focused on fixes.';
+  else if (n >= 5 && days >= 3) status = ' Active ongoing work.';
+
+  // Secondary work if there are multiple categories
+  const secondaryCats = Object.entries(cats).filter(([c]) => c !== topCat).sort((a, b) => b[1] - a[1]);
+  let secondary = '';
+  if (secondaryCats.length > 0 && secondaryCats[0][1] >= 2) {
+    const secLabels = { feature: 'new features', bugfix: 'bug fixes', deploy: 'deployments', refactor: 'refactoring', ops: 'automation', test: 'testing', docs: 'documentation', infra: 'infrastructure', design: 'design work', other: 'misc updates' };
+    secondary = `, including ${secLabels[secondaryCats[0][0]] || 'other work'}`;
+  }
+
+  return `${verb} ${cl.project} — ${scope}${secondary}.${status}`;
+}
+
 // --- AI Summary Fetching ---
 async function fetchSummaries(clusters) {
+  // Add subtle loading indicator while AI processes
+  for (const cl of clusters) {
+    const el = document.getElementById(cl._elId);
+    if (el) el.classList.add('digest-loading');
+  }
+
   try {
     const payload = clusters.map(cl => ({
       person: cl.person, project: cl.project,
@@ -597,11 +658,18 @@ async function fetchSummaries(clusters) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clusters: payload }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+      return;
+    }
     const data = await res.json();
-    if (!data.summaries || Object.keys(data.summaries).length === 0) return;
+    if (!data.summaries || Object.keys(data.summaries).length === 0) {
+      // AI unavailable — remove loading animation, keep local summaries
+      document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+      return;
+    }
 
-    // Replace headlines with AI summaries
+    // Replace local summaries with AI summaries
     for (const cl of clusters) {
       const summary = data.summaries[String(cl._idx)];
       if (summary) {
@@ -616,7 +684,7 @@ async function fetchSummaries(clusters) {
     // Remove loading state from any remaining headlines
     document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
   } catch (err) {
-    // Graceful fallback — just remove loading animation
+    // Graceful fallback — just remove loading animation, local summaries stay
     document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
   }
 }
