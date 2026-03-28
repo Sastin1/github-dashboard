@@ -151,9 +151,18 @@
   .digest-name { font-size: 14px; font-weight: 600; }
   .digest-stats { margin-left: auto; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
   .digest-effort-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
-  .digest-headline { font-size: 13px; color: var(--text-muted); margin: 6px 0 4px 18px; line-height: 1.5; transition: opacity 0.3s; }
-  .digest-headline.digest-loading { animation: digestPulse 1.5s ease-in-out infinite; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .digest-headline.digest-summary-ready { white-space: normal; opacity: 0; animation: digestFadeIn 0.4s ease-out forwards; }
+  /* Status cards (AI-generated structured summaries) */
+  .status-card { margin: 8px 0 4px 18px; font-size: 13px; line-height: 1.5; transition: opacity 0.3s; }
+  .status-card.status-loading { animation: digestPulse 1.5s ease-in-out infinite; }
+  .status-card.status-ready { opacity: 0; animation: digestFadeIn 0.4s ease-out forwards; }
+  .status-goal { color: var(--text-muted); margin-bottom: 4px; }
+  .status-goal strong { color: var(--text); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .status-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin: 5px 0 2px 0; }
+  .status-list { list-style: none; padding: 0; margin: 0 0 0 2px; }
+  .status-list.done li { color: var(--text-muted); padding: 1px 0; }
+  .status-list.done li::before { content: '\2713 '; color: var(--green); font-weight: 700; margin-right: 4px; }
+  .status-list.remaining li { color: var(--text-dim); padding: 1px 0; }
+  .status-list.remaining li::before { content: '\25CB '; color: var(--text-dim); margin-right: 4px; }
   @keyframes digestPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   @keyframes digestFadeIn { from { opacity: 0; } to { opacity: 1; } }
   .digest-breakdown { font-size: 12px; color: var(--text-dim); margin-left: 18px; display: flex; align-items: center; gap: 6px; }
@@ -539,7 +548,9 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
           <span class="digest-effort-badge" style="background:${cl.effort.color}22;color:${cl.effort.color}">${cl.effort.label}</span>
           <span class="digest-stats">${cl.totalPts} pts \u00b7 ${cl.items.length} commit${cl.items.length > 1 ? 's' : ''}</span>
         </div>
-        <div class="digest-headline" id="${headlineId}">${esc(localSummary)}</div>
+        <div class="status-card" id="${headlineId}">
+          <div class="status-goal">${esc(localSummary)}</div>
+        </div>
         <div class="digest-breakdown">${cl.breakdown}<span class="digest-expand-hint">click to expand</span></div>
         <div class="digest-detail" id="${id}">
           ${cl.items.map(c => commitItemHTML(c, personColor)).join('')}
@@ -639,12 +650,26 @@ function generateLocalSummary(cl) {
   return `${verb} ${cl.project} — ${scope}${secondary}.${status}`;
 }
 
+// --- Status Card Rendering ---
+function renderStatusCard(card) {
+  let html = `<div class="status-goal"><strong>Goal:</strong> ${esc(card.goal)}</div>`;
+  if (card.done && card.done.length > 0) {
+    html += `<div class="status-section-label">Done</div>`;
+    html += `<ul class="status-list done">${card.done.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`;
+  }
+  if (card.remaining && card.remaining.length > 0) {
+    html += `<div class="status-section-label">Remaining</div>`;
+    html += `<ul class="status-list remaining">${card.remaining.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
+  }
+  return html;
+}
+
 // --- AI Summary Fetching ---
 async function fetchSummaries(clusters) {
   // Add subtle loading indicator while AI processes
   for (const cl of clusters) {
     const el = document.getElementById(cl._elId);
-    if (el) el.classList.add('digest-loading');
+    if (el) el.classList.add('status-loading');
   }
 
   try {
@@ -659,33 +684,33 @@ async function fetchSummaries(clusters) {
       body: JSON.stringify({ clusters: payload }),
     });
     if (!res.ok) {
-      document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+      document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
       return;
     }
     const data = await res.json();
-    if (!data.summaries || Object.keys(data.summaries).length === 0) {
+    if (!data.cards || Object.keys(data.cards).length === 0) {
       // AI unavailable — remove loading animation, keep local summaries
-      document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+      document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
       return;
     }
 
-    // Replace local summaries with AI summaries
+    // Replace local summaries with structured AI status cards
     for (const cl of clusters) {
-      const summary = data.summaries[String(cl._idx)];
-      if (summary) {
+      const card = data.cards[String(cl._idx)];
+      if (card) {
         const el = document.getElementById(cl._elId);
         if (el) {
-          el.classList.remove('digest-loading');
-          el.textContent = summary;
-          el.classList.add('digest-summary-ready');
+          el.classList.remove('status-loading');
+          el.innerHTML = renderStatusCard(card);
+          el.classList.add('status-ready');
         }
       }
     }
-    // Remove loading state from any remaining headlines
-    document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+    // Remove loading state from any remaining cards
+    document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
   } catch (err) {
     // Graceful fallback — just remove loading animation, local summaries stay
-    document.querySelectorAll('.digest-loading').forEach(el => el.classList.remove('digest-loading'));
+    document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
   }
 }
 
