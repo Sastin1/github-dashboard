@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
     // Build cluster data
     const clusterText = clusters.map((cl, i) => {
-      const commitList = cl.commits.slice(0, 15).map(m => `  - ${m}`).join('\n');
+      const commitList = cl.commits.slice(0, 10).map(m => `  - ${m}`).join('\n');
       return `[${i}] ${cl.person} - ${cl.project} (${cl.commits.length} commits, ${cl.activeDays} active days, ${cl.totalLines} lines changed):\n${commitList}`;
     }).join('\n\n');
 

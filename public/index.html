@@ -664,7 +664,7 @@ function renderStatusCard(card) {
   return html;
 }
 
-// --- AI Summary Fetching ---
+// --- AI Summary Fetching (batched to avoid timeouts) ---
 async function fetchSummaries(clusters) {
   // Add subtle loading indicator while AI processes
   for (const cl of clusters) {
@@ -672,46 +672,50 @@ async function fetchSummaries(clusters) {
     if (el) el.classList.add('status-loading');
   }
 
-  try {
-    const payload = clusters.map(cl => ({
-      person: cl.person, project: cl.project,
-      activeDays: cl.activeDays, totalLines: cl.totalLines,
-      commits: cl.commits,
-    }));
-    const res = await fetch('/api/summarize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clusters: payload }),
-    });
-    if (!res.ok) {
-      document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
-      return;
-    }
-    const data = await res.json();
-    if (!data.cards || Object.keys(data.cards).length === 0) {
-      // AI unavailable — remove loading animation, keep local summaries
-      document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
-      return;
-    }
+  // Split into batches of 6 to stay under Vercel timeout
+  const BATCH_SIZE = 6;
+  const batches = [];
+  for (let i = 0; i < clusters.length; i += BATCH_SIZE) {
+    batches.push(clusters.slice(i, i + BATCH_SIZE));
+  }
 
-    // Replace local summaries with structured AI status cards
-    for (const cl of clusters) {
-      const card = data.cards[String(cl._idx)];
-      if (card) {
-        const el = document.getElementById(cl._elId);
-        if (el) {
-          el.classList.remove('status-loading');
-          el.innerHTML = renderStatusCard(card);
-          el.classList.add('status-ready');
+  // Fire all batches in parallel
+  const promises = batches.map(async (batch, batchIdx) => {
+    try {
+      const payload = batch.map(cl => ({
+        person: cl.person, project: cl.project,
+        activeDays: cl.activeDays, totalLines: cl.totalLines,
+        commits: cl.commits,
+      }));
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clusters: payload }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.cards || Object.keys(data.cards).length === 0) return;
+
+      // Replace local summaries with structured AI status cards
+      for (let j = 0; j < batch.length; j++) {
+        const card = data.cards[String(j)];
+        if (card) {
+          const el = document.getElementById(batch[j]._elId);
+          if (el) {
+            el.classList.remove('status-loading');
+            el.innerHTML = renderStatusCard(card);
+            el.classList.add('status-ready');
+          }
         }
       }
+    } catch (err) {
+      // Batch failed — silently skip
     }
-    // Remove loading state from any remaining cards
-    document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
-  } catch (err) {
-    // Graceful fallback — just remove loading animation, local summaries stay
-    document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
-  }
+  });
+
+  await Promise.all(promises);
+  // Remove loading state from any cards that didn't get updated
+  document.querySelectorAll('.status-loading').forEach(el => el.classList.remove('status-loading'));
 }
 
 // --- Project Focus (horizontal stacked bars) ---

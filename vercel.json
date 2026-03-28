@@ -8,7 +8,7 @@
       "maxDuration": 30
     },
     "api/summarize.js": {
-      "maxDuration": 20
+      "maxDuration": 30
     }
   }
 }
