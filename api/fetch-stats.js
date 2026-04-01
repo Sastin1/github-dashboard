@@ -1,6 +1,19 @@
-const REPOS = [
-  { key: 'steve', owner: 'Sastin1', repo: 'limocity-wat-backup', displayName: 'Steve Astin' },
-  { key: 'thomas', owner: 'thomaslc214', repo: 'pay-limocity', displayName: 'Thomas Clark' },
+const PEOPLE = [
+  {
+    key: 'steve',
+    displayName: 'Steve Astin',
+    repos: [
+      { owner: 'Sastin1', repo: 'limocity-wat-backup' },
+    ],
+  },
+  {
+    key: 'thomas',
+    displayName: 'Thomas Clark',
+    repos: [
+      { owner: 'thomaslc214', repo: 'pay-limocity' },
+      { owner: 'thomaslc214', repo: 'winston-ai-limo-assistant' },
+    ],
+  },
 ];
 
 // --- Categorization ---
@@ -13,6 +26,10 @@ function categorizeCommit(message) {
   if (/^fix[\s:]/.test(first) || /fix\s+bug/.test(msg)) return 'bugfix';
   if (/e2e|test suite|verification (test|check)/.test(msg)) return 'test';
   if (/^deploy|deployed to|execute wave/.test(first)) return 'deploy';
+  // Recognize deployment-scale work: project completion, wave execution, bulk operations
+  if (/project complete|wave \d|\/\d+\s*(markets?|done)|across \d+ markets|\d+\s*(pages?|sites?|listings?)\s*(with|across|deployed|complete|built|created|updated)/.test(msg)) return 'deploy';
+  if (/\d{2,}\s*(suburb|service|location)\s*pages?\b/.test(msg)) return 'deploy';
+  if (/citation|directory.*(submission|wave)|fb \d+\/\d+|bing.*done/.test(msg)) return 'deploy';
   if (/backup|migration\s*\d|repo cleanup|gitignore/.test(msg)) return 'infra';
   if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}/.test(msg)) return 'docs';
   if (/design doc|proposal|strategy|audit report|architecture/.test(msg)) return 'design';
@@ -63,10 +80,37 @@ function sizeMultiplier(additions, deletions) {
   return 1.4;
 }
 
+function deploymentScaleMultiplier(message) {
+  const msg = message.toLowerCase();
+  // Detect numeric scale indicators: "409 pages", "35 suburb pages", "64 pages", "9/9 markets"
+  const pageMatch = msg.match(/(\d+)\s*(suburb\s*)?pages?\b/);
+  const marketMatch = msg.match(/(\d+)\s*markets?\b/) || msg.match(/(\d+)\/\d+\s*markets?\b/);
+  const allMatch = msg.match(/\b(all|every|complete|full)\s+\d+\b/) || msg.match(/\d+\s*(suburb|service|location)\s*pages?\b/);
+  const bulkKeywords = /across \d+ markets|wave \d|9\/9|complete[d]?:/i.test(msg);
+
+  let scale = 1.0;
+  if (pageMatch) {
+    const count = parseInt(pageMatch[1]);
+    if (count >= 100) scale = Math.max(scale, 2.0);
+    else if (count >= 30) scale = Math.max(scale, 1.6);
+    else if (count >= 10) scale = Math.max(scale, 1.3);
+  }
+  if (marketMatch) {
+    const count = parseInt(marketMatch[1]);
+    if (count >= 5) scale = Math.max(scale, 1.5);
+    else if (count >= 3) scale = Math.max(scale, 1.3);
+  }
+  if (bulkKeywords) scale = Math.max(scale, 1.3);
+  if (allMatch) scale = Math.max(scale, 1.2);
+
+  return scale;
+}
+
 function scoreCommit(commit) {
   const base = BASE_SCORES[commit.category] || 3;
   const size = sizeMultiplier(commit.additions, commit.deletions);
-  const raw = base * size;
+  const deployScale = deploymentScaleMultiplier(commit.message || commit.fullMessage || '');
+  const raw = base * size * deployScale;
   return Math.round(Math.min(raw, 10) * 10) / 10;
 }
 
@@ -229,11 +273,58 @@ function enrichCommits(nodes) {
   });
 }
 
+// --- WordPress Metrics ---
+
+const WP_BASE = 'https://limocity.com/wp-json/wp/v2';
+const WP_HEADERS = { 'User-Agent': 'github-dashboard' };
+
+async function wpCount(endpoint, extraParams = '') {
+  try {
+    const url = `${WP_BASE}/${endpoint}?per_page=1&status=publish${extraParams}`;
+    const res = await fetch(url, { headers: WP_HEADERS });
+    if (!res.ok) return 0;
+    return parseInt(res.headers.get('X-WP-Total') || '0', 10);
+  } catch {
+    return 0;
+  }
+}
+
+async function fetchWPMetrics() {
+  const now = new Date();
+  const daysAgo = (n) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split('.')[0];
+  };
+
+  const [totalPages, modifiedLast7d, modifiedLast14d, modifiedLast30d, totalPosts, suburbPages] = await Promise.all([
+    wpCount('pages'),
+    wpCount('pages', `&modified_after=${daysAgo(7)}`),
+    wpCount('pages', `&modified_after=${daysAgo(14)}`),
+    wpCount('pages', `&modified_after=${daysAgo(30)}`),
+    wpCount('posts'),
+    wpCount('pages', '&search=limo+service'),
+  ]);
+
+  return {
+    totalPages,
+    totalPosts,
+    suburbPages,
+    modifiedLast7d,
+    modifiedLast14d,
+    modifiedLast30d,
+    fetchedAt: now.toISOString(),
+  };
+}
+
 // --- Handler ---
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const token = process.env.GITHUB_TOKEN;
@@ -242,21 +333,42 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Fetch WordPress metrics in parallel with GitHub data
+    const wpMetricsPromise = fetchWPMetrics();
     const results = {};
 
-    for (const r of REPOS) {
-      const nodes = await fetchAllCommits(token, r.owner, r.repo);
-      const commits = enrichCommits(nodes);
+    for (const person of PEOPLE) {
+      // Fetch all repos for this person in parallel
+      const repoResults = await Promise.all(
+        person.repos.map(r => fetchAllCommits(token, r.owner, r.repo).then(nodes => ({ nodes, repo: r })))
+      );
+
+      // Merge and deduplicate commits by SHA
+      const seen = new Set();
+      const allNodes = [];
+      for (const { nodes, repo } of repoResults) {
+        for (const n of nodes) {
+          if (!seen.has(n.oid)) {
+            seen.add(n.oid);
+            n._sourceRepo = `${repo.owner}/${repo.repo}`;
+            allNodes.push(n);
+          }
+        }
+      }
+
+      // Sort by date descending
+      allNodes.sort((a, b) => new Date(b.committedDate) - new Date(a.committedDate));
+
+      const commits = enrichCommits(allNodes);
       const totalAdditions = commits.reduce((s, c) => s + c.additions, 0);
       const totalDeletions = commits.reduce((s, c) => s + c.deletions, 0);
       const avgImpact = commits.length > 0
         ? Math.round((commits.reduce((s, c) => s + c.impactScore, 0) / commits.length) * 10) / 10
         : 0;
 
-      results[r.key] = {
-        owner: r.owner,
-        repo: r.repo,
-        displayName: r.displayName,
+      results[person.key] = {
+        repos: person.repos.map(r => `${r.owner}/${r.repo}`),
+        displayName: person.displayName,
         totalCommits: commits.length,
         totalAdditions,
         totalDeletions,
@@ -270,10 +382,13 @@ export default async function handler(req, res) {
       results.thomas.commits
     );
 
+    const wpMetrics = await wpMetricsPromise;
+
     return res.status(200).json({
       generatedAt: new Date().toISOString(),
       ...results,
       synergies,
+      wpMetrics,
     });
   } catch (err) {
     console.error('Error fetching stats:', err);

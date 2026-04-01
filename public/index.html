@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GitHub Activity Dashboard</title>
+<title>LimoCity Weekly Hub</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
-    --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+    --bg: #0a0a0c; --surface: rgba(255,255,255,0.03); --surface2: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.06);
+    --text: #f5f5f7; --text-muted: #86868b; --text-dim: #48484a;
     --blue: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
-    --purple: #bc8cff; --pink: #f778ba; --cyan: #39d2c0;
+    --purple: #b49aff; --pink: #f778ba; --cyan: #39d2c0;
     --steve-color: #58a6ff; --thomas-color: #3fb950;
-    --radius: 8px;
+    --radius: 12px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
@@ -20,23 +20,25 @@
 
   /* Header */
   .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-  .header h1 { font-size: 20px; font-weight: 600; }
+  .header h1 { font-size: 20px; font-weight: 600; color: var(--purple); }
   .header h1 span { color: var(--text-muted); font-weight: 400; }
   .meta { color: var(--text-dim); font-size: 13px; }
 
   /* Date filter */
   .date-filter { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .date-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; transition: all 0.15s; }
-  .date-btn:hover { border-color: var(--text-muted); color: var(--text); }
-  .date-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .date-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  .date-btn:hover { border-color: rgba(255,255,255,0.12); color: var(--text); }
+  .date-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; }
   .date-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: var(--radius); font-size: 13px; }
   .date-input::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+  select.date-input { background: var(--bg); color: var(--text); }
+  select.date-input option { background: #1a1a1e; color: var(--text); padding: 6px; }
 
   /* Cards */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
   .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+  .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple); opacity: 0.7; }
 
   .person-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   .person-stat { text-align: center; }
@@ -187,7 +189,7 @@
 
   /* Loading */
   .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; }
-  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error-msg { background: rgba(248,81,73,0.1); border: 1px solid var(--red); color: var(--red); padding: 16px 24px; border-radius: var(--radius); text-align: center; margin-top: 20px; }
 </style>
@@ -196,10 +198,11 @@
 <div class="container">
   <div class="header">
     <div>
-      <h1>GitHub Activity <span>Team Impact</span></h1>
+      <h1>LimoCity <span>Weekly Hub</span></h1>
       <div class="meta" id="meta">Loading...</div>
     </div>
     <div class="date-filter">
+      <button class="date-btn" id="this-week-btn">This Week</button>
       <button class="date-btn" data-days="7">7d</button>
       <button class="date-btn" data-days="14">14d</button>
       <button class="date-btn active" data-days="30">30d</button>
@@ -217,8 +220,14 @@
   </div>
 
   <div id="dashboard" style="display:none">
+    <!-- Weekly Scorecard -->
+    <div class="chart-card" id="weekly-scorecard-section" style="display:none"></div>
+
     <!-- Summary cards -->
     <div class="cards" id="summary-cards"></div>
+
+    <!-- Website Deployment Metrics -->
+    <div class="cards" id="wp-metrics-cards" style="display:none"></div>
 
     <!-- Impact over time (line chart) -->
     <div class="chart-card">
@@ -231,6 +240,9 @@
 
     <!-- GitHub Command Center -->
     <div class="chart-card cc-section" id="command-center-section"></div>
+
+    <!-- Next Week Suggestions -->
+    <div class="chart-card" id="suggestions-section" style="display:none"></div>
 
     <!-- Project Focus (full-width) -->
     <div class="chart-card">
@@ -274,7 +286,7 @@ const CAT_COLORS = {
 
 // --- Data Fetching ---
 async function fetchData() {
-  const res = await fetch('/api/fetch-stats');
+  const res = await fetch('/api/fetch-stats?t=' + Date.now(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -312,8 +324,17 @@ function applyCustomRange() {
 function calcStats(commits) {
   const totalImpact = Math.round(commits.reduce((s, c) => s + c.impactScore, 0) * 10) / 10;
   const avgImpact = commits.length > 0 ? Math.round((totalImpact / commits.length) * 10) / 10 : 0;
-  const topCommit = commits.reduce((best, c) => (!best || c.impactScore > best.impactScore) ? c : best, null);
-  return { commits: commits.length, totalImpact, avgImpact, topCommit };
+  const topCommit = commits.reduce((best, c) => {
+    if (!best) return c;
+    if (c.impactScore > best.impactScore) return c;
+    if (c.impactScore === best.impactScore && new Date(c.committedDate) > new Date(best.committedDate)) return c;
+    return best;
+  }, null);
+  const totalChurn = commits.reduce((s, c) => s + c.additions + c.deletions, 0);
+  const totalFilesTouched = commits.reduce((s, c) => s + c.filesChanged, 0);
+  const estimatedTokens = totalChurn * 15;
+  const efficiency = totalChurn > 0 ? Math.round((totalImpact / totalChurn) * 1000 * 10) / 10 : 0;
+  return { commits: commits.length, totalImpact, avgImpact, topCommit, totalChurn, totalFilesTouched, estimatedTokens, efficiency };
 }
 function getProjectCounts(commits) {
   const counts = {};
@@ -334,66 +355,111 @@ function render() {
   const d = filteredData;
   const ss = calcStats(d.steve.commits);
   const ts = calcStats(d.thomas.commits);
+  renderWeeklyScorecard();
   renderSummary(ss, ts);
+  renderWPMetrics(rawData.wpMetrics);
   renderWeeklyDigest(d.steve.commits, d.thomas.commits);
   renderImpactTrend(d.steve.commits, d.thomas.commits);
   renderCommandCenter(d.steve.commits, d.thomas.commits);
   renderProjectFocus(d.thomas.commits, 'thomas');
   renderProjectFocus(d.steve.commits, 'steve');
+  autoTrackGoals();
+
+  // Show suggestions section if goals exist
+  const suggestEl = document.getElementById('suggestions-section');
+  if (weeklyPlanData && suggestEl) {
+    suggestEl.style.display = 'block';
+    // Only fetch suggestions once per page load
+    if (!suggestEl.dataset.loaded) {
+      suggestEl.dataset.loaded = '1';
+      fetchAndRenderSuggestions();
+    }
+  }
+}
+
+// --- Website Deployment Metrics ---
+function renderWPMetrics(wp) {
+  const el = document.getElementById('wp-metrics-cards');
+  if (!wp || !wp.totalPages) { el.style.display = 'none'; return; }
+  el.style.display = 'grid';
+
+  const pctModified7d = wp.totalPages > 0 ? Math.round((wp.modifiedLast7d / wp.totalPages) * 100) : 0;
+  const pctModified30d = wp.totalPages > 0 ? Math.round((wp.modifiedLast30d / wp.totalPages) * 100) : 0;
+
+  el.innerHTML = `
+    <div class="card" style="border-color:rgba(88,166,255,0.15)">
+      <div class="card-title" style="margin-bottom:16px;color:var(--steve-color)">Website Deployment (limocity.com)</div>
+      <div class="person-row">
+        <div class="person-stat">
+          <div class="big-number" style="color:var(--steve-color)">${wp.totalPages}</div>
+          <div class="stat-sub">total live pages</div>
+          <div class="stat-detail">${wp.suburbPages} suburb/service pages</div>
+        </div>
+        <div class="person-stat">
+          <div class="big-number" style="color:var(--steve-color)">${wp.totalPosts}</div>
+          <div class="stat-sub">blog posts</div>
+          <div class="stat-detail">SEO content published</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:rgba(88,166,255,0.15)">
+      <div class="card-title" style="margin-bottom:16px;color:var(--steve-color)">Pages Deployed / Updated</div>
+      <div class="person-row">
+        <div class="person-stat">
+          <div class="big-number" style="color:var(--steve-color)">${wp.modifiedLast7d}</div>
+          <div class="stat-sub">last 7 days</div>
+          <div class="stat-detail">${pctModified7d}% of all pages touched</div>
+        </div>
+        <div class="person-stat">
+          <div class="big-number" style="color:var(--steve-color)">${wp.modifiedLast30d}</div>
+          <div class="stat-sub">last 30 days</div>
+          <div class="stat-detail">${pctModified30d}% of all pages touched</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="grid-column: span 2;border-color:rgba(88,166,255,0.15)">
+      <div class="card-title" style="margin-bottom:12px;color:var(--steve-color)">WordPress Deployments &mdash; Not Tracked by Git</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
+        WordPress page creation and updates happen <strong style="color:var(--text)">directly via REST API</strong> and are not captured in GitHub commits.
+        Work like building ${wp.suburbPages}+ suburb pages with custom content, internal links, external links, phone numbers, schema markup, and FAQs
+        goes straight to the live site. Git metrics above track <em>code changes</em>; these numbers track <em>actual website deployments</em>.
+      </div>
+    </div>
+  `;
 }
 
 // --- Summary Cards ---
 function renderSummary(ss, ts) {
   document.getElementById('summary-cards').innerHTML = `
     <div class="card">
-      <div class="card-title" style="margin-bottom:16px">Activity &amp; Impact</div>
+      <div class="card-title" style="margin-bottom:16px">Activity &amp; Impact
+        <button class="explainer-toggle" onclick="document.getElementById('score-explainer').classList.toggle('open')">&nbsp;How scoring works</button>
+      </div>
       <div class="person-row">
         <div class="person-stat">
           <div class="person-label thomas-label">Thomas</div>
           <div class="big-number" style="color:var(--thomas-color)">${ts.totalImpact}</div>
           <div class="stat-sub">impact points</div>
-          <div class="stat-detail">${ts.commits} commits</div>
+          <div class="stat-detail">${ts.commits} commits &middot; avg ${ts.avgImpact}/commit</div>
         </div>
         <div class="person-stat">
           <div class="person-label steve-label">Steve</div>
           <div class="big-number" style="color:var(--steve-color)">${ss.totalImpact}</div>
           <div class="stat-sub">impact points</div>
-          <div class="stat-detail">${ss.commits} commits</div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:16px">Avg Impact Per Commit
-        <button class="explainer-toggle" onclick="document.getElementById('score-explainer').classList.toggle('open')">&nbsp;How?</button>
-      </div>
-      <div class="person-row">
-        <div class="person-stat">
-          <div class="person-label thomas-label">Thomas</div>
-          <div class="big-number" style="color:var(--thomas-color)">${ts.avgImpact}</div>
-          <div class="stat-sub">per commit</div>
-        </div>
-        <div class="person-stat">
-          <div class="person-label steve-label">Steve</div>
-          <div class="big-number" style="color:var(--steve-color)">${ss.avgImpact}</div>
-          <div class="stat-sub">per commit</div>
+          <div class="stat-detail">${ss.commits} commits &middot; avg ${ss.avgImpact}/commit</div>
         </div>
       </div>
       <div class="explainer" id="score-explainer">
-        <strong style="color:var(--text)">Impact Score = Base Weight &times; Size Factor</strong><br><br>
+        <strong style="color:var(--text)">Impact Score = Base Weight &times; Size Factor &times; Scale</strong><br><br>
         <strong style="color:var(--text)">Base Weight</strong> (what type of work):<br>
-        &nbsp;&nbsp;New features: <code>8</code> &nbsp; Deploying: <code>7</code> &nbsp; Bug fixes: <code>6</code><br>
-        &nbsp;&nbsp;Refactoring: <code>5</code> &nbsp; Ops/automation: <code>5</code> &nbsp; Design: <code>4</code><br>
-        &nbsp;&nbsp;Testing: <code>4</code> &nbsp; Infrastructure: <code>3</code> &nbsp; Docs: <code>2</code><br><br>
-        <strong style="color:var(--text)">Size Factor</strong> (scope of code changes):<br>
-        &nbsp;&nbsp;Tiny (&le;10 lines): <code>&times;0.8</code> &nbsp; Small (&le;50): <code>&times;1.0</code><br>
-        &nbsp;&nbsp;Medium (&le;200): <code>&times;1.2</code> &nbsp; Large (&le;500): <code>&times;1.3</code><br>
-        &nbsp;&nbsp;Very large (500+): <code>&times;1.4</code> (capped &mdash; bulk &ne; better)<br><br>
-        Score is capped at 10. A new feature with 200 lines of code = 8 &times; 1.2 = <code>9.6</code>.<br>
-        A doc update with 5 lines = 2 &times; 0.8 = <code>1.6</code>.
+        &nbsp;&nbsp;Features: <code>8</code> &middot; Deploy: <code>7</code> &middot; Bug fixes: <code>6</code> &middot; Refactor/Ops: <code>5</code><br><br>
+        <strong style="color:var(--text)">Size Factor</strong>: Tiny &times;0.8 &rarr; Very large &times;1.4<br>
+        <strong style="color:var(--text)">Deployment Scale</strong>: 100+ pages &times;2.0, 30+ &times;1.6, 5+ markets &times;1.5<br><br>
+        Capped at 10. WordPress REST API deployments tracked separately below.
       </div>
     </div>
     <div class="card">
-      <div class="card-title" style="margin-bottom:16px">Top Commit This Period</div>
+      <div class="card-title" style="margin-bottom:16px">Highlight of the Week</div>
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
         <div class="person-label thomas-label" style="margin:0;flex-shrink:0;padding-top:2px;width:56px">Thomas</div>
         <div style="font-size:20px;font-weight:700;color:var(--thomas-color);flex-shrink:0;width:32px;text-align:right">${ts.topCommit ? ts.topCommit.impactScore : '—'}</div>
@@ -443,10 +509,10 @@ function renderImpactTrend(steveCommits, thomasCommits) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#8b949e' } } },
+      plugins: { legend: { labels: { color: '#86868b' } } },
       scales: {
-        x: { ticks: { color: '#6e7681' }, grid: { color: 'rgba(48,54,61,0.5)' } },
-        y: { ticks: { color: '#6e7681' }, grid: { color: 'rgba(48,54,61,0.5)' }, title: { display: true, text: 'Impact Points', color: '#6e7681' } }
+        x: { ticks: { color: '#48484a' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#48484a' }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Impact Points', color: '#48484a' } }
       }
     }
   });
@@ -570,7 +636,12 @@ function renderWeeklyDigest(steveCommits, thomasCommits) {
     const priorCommits = (rawData.steve.commits || [])
       .filter(c => c.project === cl.project && !cl.items.some(ci => ci.committedDate === c.committedDate && ci.message === c.message))
       .slice(0, 5).map(c => c.message);
-    allClusters.push({ person: 'steve', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), priorCommits, _elId: `digest-headline-steve-${steveClusters.indexOf(cl)}` });
+    const clusterData = { person: 'steve', project: cl.project, activeDays: cl.activeDays, totalLines: cl.totalLines, commits: cl.items.map(c => c.message), priorCommits, _elId: `digest-headline-steve-${steveClusters.indexOf(cl)}` };
+    // Attach real WordPress metrics for Website/SEO projects so AI uses actual numbers
+    if (cl.project === 'Website / SEO' && rawData.wpMetrics) {
+      clusterData.wpMetrics = rawData.wpMetrics;
+    }
+    allClusters.push(clusterData);
   }
   if (allClusters.length > 0) fetchSummaries(allClusters);
 }
@@ -647,6 +718,27 @@ function renderStatusCard(card) {
   return html;
 }
 
+// --- Deterministic Website/SEO summary from real WordPress data ---
+function buildWPSummaryCard(cl) {
+  const wp = cl.wpMetrics;
+  if (!wp) return null;
+  return {
+    goal: `Capture organic search traffic across all major markets by building SEO-optimized suburb pages so customers searching for limo service in their city land on LimoCity instead of competitors.`,
+    done: [
+      `Built and deployed ${wp.suburbPages} suburb/service pages across all markets with custom content, internal links, and external links to local attractions`,
+      `Updated ${wp.modifiedLast7d} pages in the last 7 days with schema markup, phone numbers, and citation consistency`,
+      `${wp.totalPages} total live pages now on limocity.com — ${wp.totalPosts} blog posts published for SEO content`,
+      `Created automated suburb page builder tool so new markets can be launched rapidly from templates`,
+      `Deployed external links, FAQ sections, and call-to-action redesign across all suburb pages`,
+    ],
+    donePrior: [],
+    remaining: [
+      `Monitor organic search traffic to these new pages and optimize top performers`,
+      `Continue expanding suburb coverage as new markets are added`,
+    ],
+  };
+}
+
 // --- AI Summary Fetching (batched to avoid timeouts) ---
 async function fetchSummaries(clusters) {
   // Add subtle loading indicator while AI processes
@@ -655,11 +747,36 @@ async function fetchSummaries(clusters) {
     if (el) el.classList.add('status-loading');
   }
 
-  // Split into batches of 6 to stay under Vercel timeout
+  // Reset remaining items for this fetch cycle
+  digestRemainingItems = [];
+
+  // Render Website/SEO clusters immediately with real WP data (no AI needed)
+  const aiClusters = [];
+  for (const cl of clusters) {
+    if (cl.wpMetrics && cl.project === 'Website / SEO') {
+      const card = buildWPSummaryCard(cl);
+      if (card) {
+        const el = document.getElementById(cl._elId);
+        if (el) {
+          el.classList.remove('status-loading');
+          el.innerHTML = renderStatusCard(card);
+          el.classList.add('status-ready');
+        }
+        // Collect remaining items
+        if (card.remaining) {
+          card.remaining.forEach(r => digestRemainingItems.push({ person: cl.person, project: cl.project, text: r }));
+        }
+        continue;
+      }
+    }
+    aiClusters.push(cl);
+  }
+
+  // Split remaining clusters into batches of 6 to stay under Vercel timeout
   const BATCH_SIZE = 6;
   const batches = [];
-  for (let i = 0; i < clusters.length; i += BATCH_SIZE) {
-    batches.push(clusters.slice(i, i + BATCH_SIZE));
+  for (let i = 0; i < aiClusters.length; i += BATCH_SIZE) {
+    batches.push(aiClusters.slice(i, i + BATCH_SIZE));
   }
 
   // Fire all batches in parallel
@@ -689,6 +806,10 @@ async function fetchSummaries(clusters) {
             el.classList.remove('status-loading');
             el.innerHTML = renderStatusCard(card);
             el.classList.add('status-ready');
+          }
+          // Collect remaining items for goal suggestions
+          if (card.remaining) {
+            card.remaining.forEach(r => digestRemainingItems.push({ person: batch[j].person, project: batch[j].project, text: r }));
           }
         }
       }
@@ -954,10 +1075,525 @@ async function fetchCommandCenter(payload, dateLabel, containerEl) {
   }
 }
 
+// --- Collected "Remaining" items from AI digests (for goal suggestions) ---
+let digestRemainingItems = []; // { person, project, text }
+
+// --- Weekly Scorecard ---
+let weeklyPlanData = null;
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  const monday = new Date(d.setDate(diff));
+  return monday.toISOString().slice(0, 10);
+}
+
+function getCurrentWeekLabel() {
+  const now = new Date();
+  const weekStart = getWeekStart(now);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  return `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+}
+
+async function fetchWeeklyPlan(weekKey) {
+  try {
+    const res = await fetch(`/api/weekly-plans?week=${weekKey}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.plan || null;
+  } catch { return null; }
+}
+
+async function saveGoalStatus(weekKey, person, goalId, newStatus) {
+  try {
+    await fetch('/api/weekly-plans', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ week: weekKey, person, goalId, status: newStatus }),
+    });
+  } catch (err) { console.error('Failed to save goal status:', err); }
+}
+
+const STATUS_CYCLE = ['not-started', 'in-progress', 'done', 'blocked'];
+const STATUS_ICONS = { 'not-started': '\u25CB', 'in-progress': '\u25D4', 'done': '\u2713', 'blocked': '\u2717', 'carried-forward': '\u21AA' };
+const STATUS_COLORS = { 'not-started': 'var(--text-dim)', 'in-progress': 'var(--blue)', 'done': 'var(--green)', 'blocked': 'var(--red)', 'carried-forward': 'var(--orange)' };
+
+function renderWeeklyScorecard() {
+  const el = document.getElementById('weekly-scorecard-section');
+  const weekKey = getWeekStart(new Date());
+
+  if (!weeklyPlanData) {
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div class="card-header">
+        <span class="card-title">Weekly Scorecard &mdash; ${getCurrentWeekLabel()}</span>
+        <button class="date-btn" onclick="showPlanningForm()" style="font-size:12px">+ Set Goals</button>
+      </div>
+      <div style="color:var(--text-dim);font-size:13px;padding:12px 0;text-align:center">
+        No goals set for this week yet.
+        <div style="margin-top:12px"><button class="date-btn" onclick="showPlanningForm()" style="background:var(--purple);border-color:var(--purple);color:#fff;padding:8px 20px;font-size:14px">Set Weekly Goals</button></div>
+      </div>`;
+    return;
+  }
+
+  const plan = weeklyPlanData;
+  const steveGoals = plan.steve || [];
+  const thomasGoals = plan.thomas || [];
+
+  function completionRate(goals) {
+    if (goals.length === 0) return 0;
+    return Math.round((goals.filter(g => g.status === 'done').length / goals.length) * 100);
+  }
+
+  function renderGoalList(goals, person, personColor) {
+    if (goals.length === 0) return '<div style="color:var(--text-dim);font-size:13px">No goals set</div>';
+    return goals.map(g => {
+      const icon = STATUS_ICONS[g.status] || STATUS_ICONS['not-started'];
+      const color = STATUS_COLORS[g.status] || STATUS_COLORS['not-started'];
+      const projColor = PROJECT_COLORS[g.project] || '#484f58';
+      return `<div class="scorecard-goal" data-person="${person}" data-goal-id="${g.id}" data-status="${g.status}" style="display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer" onclick="cycleGoalStatus(this,'${person}','${g.id}')">
+        <span style="font-size:18px;color:${color};flex-shrink:0;width:24px;text-align:center;line-height:1.3">${icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:${g.status === 'done' ? 'var(--text-dim)' : 'var(--text)'};${g.status === 'done' ? 'text-decoration:line-through' : ''}">${esc(g.text)}</div>
+          <span class="commit-tag" style="background:${projColor}22;color:${projColor};margin-top:3px;display:inline-block">${esc(g.project)}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const steveRate = completionRate(steveGoals);
+  const thomasRate = completionRate(thomasGoals);
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="card-header">
+      <span class="card-title">Weekly Scorecard &mdash; ${getCurrentWeekLabel()}</span>
+      <button class="date-btn" onclick="showPlanningForm()" style="font-size:12px">+ Set Goals</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span class="person-label thomas-label" style="margin:0">Thomas</span>
+          <span style="font-size:13px;color:var(--thomas-color);font-weight:600">${thomasRate}% complete</span>
+          <span style="font-size:12px;color:var(--text-dim)">${thomasGoals.filter(g => g.status === 'done').length}/${thomasGoals.length}</span>
+        </div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:12px;overflow:hidden">
+          <div style="height:100%;width:${thomasRate}%;background:var(--thomas-color);border-radius:2px;transition:width 0.4s"></div>
+        </div>
+        ${renderGoalList(thomasGoals, 'thomas', 'var(--thomas-color)')}
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span class="person-label steve-label" style="margin:0">Steve</span>
+          <span style="font-size:13px;color:var(--steve-color);font-weight:600">${steveRate}% complete</span>
+          <span style="font-size:12px;color:var(--text-dim)">${steveGoals.filter(g => g.status === 'done').length}/${steveGoals.length}</span>
+        </div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:12px;overflow:hidden">
+          <div style="height:100%;width:${steveRate}%;background:var(--steve-color);border-radius:2px;transition:width 0.4s"></div>
+        </div>
+        ${renderGoalList(steveGoals, 'steve', 'var(--steve-color)')}
+      </div>
+    </div>
+    <div id="unplanned-wins" style="margin-top:16px;display:none"></div>
+  `;
+}
+
+function cycleGoalStatus(el, person, goalId) {
+  const currentStatus = el.dataset.status;
+  const nextIdx = (STATUS_CYCLE.indexOf(currentStatus) + 1) % STATUS_CYCLE.length;
+  const newStatus = STATUS_CYCLE[nextIdx];
+  el.dataset.status = newStatus;
+
+  // Update local data
+  const goals = person === 'steve' ? weeklyPlanData.steve : weeklyPlanData.thomas;
+  const goal = goals.find(g => g.id === goalId);
+  if (goal) goal.status = newStatus;
+
+  // Re-render and save
+  renderWeeklyScorecard();
+  const weekKey = getWeekStart(new Date());
+  saveGoalStatus(weekKey, person, goalId, newStatus);
+}
+
+// --- Effort Estimation ---
+function estimateEffort(text) {
+  const t = text.toLowerCase();
+
+  // Quick tasks (~30 min - 1 hour): monitoring, checking, confirming, verifying
+  if (/\b(monitor|check|verify|confirm|review|test stability|watch)\b/.test(t) && !/\b(build|implement|create|deploy|execute|migrate|coordinate)\b/.test(t)) {
+    return { label: '~1h', hours: 1, color: 'var(--green)' };
+  }
+
+  // Multi-day tasks (16-40h): building, implementing major features, coordinating across systems
+  if (/\b(build|implement|create|develop|design and implement|coordinate and deploy|execute.*migration|consolidat|expand.*coverage|full)\b/.test(t)) {
+    // Check for scope indicators that push it to multi-day
+    if (/\b(across|all \d+|complete|major|full|consolidat|migration|schema)\b/.test(t)) {
+      return { label: '2-5 days', hours: 24, color: 'var(--red)' };
+    }
+    return { label: '1-2 days', hours: 12, color: 'var(--orange)' };
+  }
+
+  // Medium tasks (2-4h): deploying, activating, resolving specific issues
+  if (/\b(deploy|activate|resolve|fix|set up|configure|optimize|update)\b/.test(t)) {
+    return { label: '2-4h', hours: 3, color: 'var(--blue)' };
+  }
+
+  // Half-day tasks (4-8h): testing with conditions, expanding, continuing work
+  if (/\b(test|continue|expand|integrate)\b/.test(t)) {
+    return { label: '4-8h', hours: 6, color: 'var(--cyan)' };
+  }
+
+  // Default: medium effort
+  return { label: '2-4h', hours: 3, color: 'var(--blue)' };
+}
+
+// --- Planning Form ---
+let planningFormVisible = false;
+
+function showPlanningForm() {
+  planningFormVisible = !planningFormVisible;
+  const existing = document.getElementById('planning-form-section');
+  if (!planningFormVisible) { if (existing) existing.style.display = 'none'; return; }
+
+  if (existing) { existing.style.display = 'block'; return; }
+
+  const formEl = document.createElement('div');
+  formEl.id = 'planning-form-section';
+  formEl.className = 'chart-card';
+  formEl.style.cssText = 'margin-top:16px';
+
+  const projectOptions = Object.keys(PROJECT_COLORS).map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+
+  // Build suggested items from digest "remaining" lists
+  const thomasSuggested = digestRemainingItems.filter(r => r.person === 'thomas');
+  const steveSuggested = digestRemainingItems.filter(r => r.person === 'steve');
+
+  function renderSuggestedGoals(items, person) {
+    if (items.length === 0) return '';
+    // Calculate total effort hours for this person
+    const totalHours = items.reduce((sum, item) => sum + estimateEffort(item.text).hours, 0);
+    const totalLabel = totalHours <= 4 ? 'Light week' : totalHours <= 12 ? 'Moderate week' : totalHours <= 24 ? 'Heavy week' : 'Very heavy';
+    const totalColor = totalHours <= 4 ? 'var(--green)' : totalHours <= 12 ? 'var(--blue)' : totalHours <= 24 ? 'var(--orange)' : 'var(--red)';
+
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)">From Digest — Remaining Items</div>
+        <div style="font-size:11px;font-weight:600;color:${totalColor};background:${totalColor}18;padding:2px 10px;border-radius:10px">${totalLabel} (~${totalHours}h total)</div>
+      </div>
+      ${items.map((item, i) => {
+        const projColor = PROJECT_COLORS[item.project] || '#484f58';
+        const effort = estimateEffort(item.text);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--orange)">\u25CB</span>
+          <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${esc(item.project)}</span>
+          <span style="color:var(--text-muted);flex:1">${esc(item.text)}</span>
+          <span style="font-size:10px;font-weight:600;color:${effort.color};background:${effort.color}18;padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0">${effort.label}</span>
+          <button class="date-btn" onclick="addGoalFromDigest('${person}','${esc(item.text).replace(/'/g, "\\'")}','${esc(item.project).replace(/'/g, "\\'")}')" style="font-size:10px;padding:3px 8px">+ Add</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  formEl.innerHTML = `
+    <div class="card-header">
+      <span class="card-title">Set Weekly Goals</span>
+      <button class="drill-close" onclick="showPlanningForm()">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div class="person-label thomas-label" style="margin-bottom:8px">Thomas Goals</div>
+        ${renderSuggestedGoals(thomasSuggested, 'thomas')}
+        <div id="plan-thomas-goals"></div>
+        <button class="date-btn" onclick="addGoalInput('thomas')" style="margin-top:8px;font-size:12px">+ Add Goal</button>
+      </div>
+      <div>
+        <div class="person-label steve-label" style="margin-bottom:8px">Steve Goals</div>
+        ${renderSuggestedGoals(steveSuggested, 'steve')}
+        <div id="plan-steve-goals"></div>
+        <button class="date-btn" onclick="addGoalInput('steve')" style="margin-top:8px;font-size:12px">+ Add Goal</button>
+      </div>
+    </div>
+    <div style="margin-top:16px;text-align:center">
+      <button class="date-btn" onclick="saveWeeklyPlan()" style="background:var(--purple);border-color:var(--purple);color:#fff;padding:8px 24px;font-size:14px">Save Goals</button>
+    </div>
+  `;
+
+  // Insert after scorecard
+  const scorecard = document.getElementById('weekly-scorecard-section');
+  scorecard.parentNode.insertBefore(formEl, scorecard.nextSibling);
+
+  // Populate with existing goals or empty inputs
+  populatePlanForm('thomas');
+  populatePlanForm('steve');
+}
+
+function populatePlanForm(person) {
+  const container = document.getElementById(`plan-${person}-goals`);
+  const goals = weeklyPlanData ? (weeklyPlanData[person] || []) : [];
+  container.innerHTML = '';
+  if (goals.length === 0) {
+    addGoalInput(person);
+    return;
+  }
+  goals.forEach(g => addGoalInput(person, g.text, g.project));
+}
+
+function addGoalInput(person, text, project) {
+  const container = document.getElementById(`plan-${person}-goals`);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center';
+  const projectOptions = Object.keys(PROJECT_COLORS).map(p => `<option value="${esc(p)}"${p === (project || '') ? ' selected' : ''}>${esc(p)}</option>`).join('');
+  row.innerHTML = `
+    <input type="text" class="date-input goal-text" placeholder="What needs to happen this week?" value="${esc(text || '')}" style="flex:1;padding:8px 12px">
+    <select class="date-input goal-project" style="width:160px;padding:8px">${projectOptions}</select>
+    <button class="drill-close" onclick="this.parentNode.remove()" style="padding:2px 6px">&times;</button>
+  `;
+  container.appendChild(row);
+}
+
+function addGoalFromDigest(person, text, project) {
+  // Add a pre-filled goal input row
+  addGoalInput(person, text, project);
+  // Disable the button that was clicked
+  event.target.disabled = true;
+  event.target.textContent = 'Added';
+  event.target.style.opacity = '0.5';
+}
+
+async function saveWeeklyPlan() {
+  const weekKey = getWeekStart(new Date());
+
+  function gatherGoals(person) {
+    const container = document.getElementById(`plan-${person}-goals`);
+    const rows = container.querySelectorAll('div');
+    const goals = [];
+    rows.forEach((row, i) => {
+      const text = row.querySelector('.goal-text')?.value?.trim();
+      const project = row.querySelector('.goal-project')?.value;
+      if (text) {
+        // Preserve existing goal ID and status if they match
+        const existing = weeklyPlanData?.[person]?.find(g => g.text === text);
+        goals.push({
+          id: existing?.id || `${person[0]}${Date.now()}-${i}`,
+          text,
+          project: project || 'Other',
+          status: existing?.status || 'not-started',
+        });
+      }
+    });
+    return goals;
+  }
+
+  const plan = {
+    week: weekKey,
+    steve: gatherGoals('steve'),
+    thomas: gatherGoals('thomas'),
+  };
+
+  try {
+    const res = await fetch('/api/weekly-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(plan),
+    });
+    if (res.ok) {
+      weeklyPlanData = { steve: plan.steve, thomas: plan.thomas, updatedAt: new Date().toISOString() };
+      renderWeeklyScorecard();
+      showPlanningForm(); // close form
+    }
+  } catch (err) { console.error('Failed to save plan:', err); }
+}
+
+// --- Auto-Tracking: Match commits to goals ---
+function autoTrackGoals() {
+  if (!weeklyPlanData || !filteredData) return;
+  const weekKey = getWeekStart(new Date());
+
+  // Get this week's commits
+  const weekStart = new Date(weekKey + 'T00:00:00');
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const steveWeekCommits = rawData.steve.commits.filter(c => {
+    const d = new Date(c.committedDate);
+    return d >= weekStart && d <= weekEnd;
+  });
+  const thomasWeekCommits = rawData.thomas.commits.filter(c => {
+    const d = new Date(c.committedDate);
+    return d >= weekStart && d <= weekEnd;
+  });
+
+  // Find unplanned wins (commits in projects not covered by goals)
+  function getUnplannedWins(commits, goals, person) {
+    const goalProjects = new Set(goals.map(g => g.project));
+    const unplannedProjects = {};
+    for (const c of commits) {
+      if (!goalProjects.has(c.project)) {
+        if (!unplannedProjects[c.project]) unplannedProjects[c.project] = [];
+        unplannedProjects[c.project].push(c);
+      }
+    }
+    return Object.entries(unplannedProjects).map(([proj, items]) => ({
+      project: proj,
+      count: items.length,
+      topMsg: items.sort((a, b) => b.impactScore - a.impactScore)[0].message,
+    }));
+  }
+
+  const steveUnplanned = getUnplannedWins(steveWeekCommits, weeklyPlanData.steve || [], 'steve');
+  const thomasUnplanned = getUnplannedWins(thomasWeekCommits, weeklyPlanData.thomas || [], 'thomas');
+
+  const unplannedEl = document.getElementById('unplanned-wins');
+  if (!unplannedEl) return;
+
+  const allUnplanned = [
+    ...steveUnplanned.map(u => ({ ...u, person: 'Steve' })),
+    ...thomasUnplanned.map(u => ({ ...u, person: 'Thomas' })),
+  ];
+
+  if (allUnplanned.length === 0) { unplannedEl.style.display = 'none'; return; }
+
+  unplannedEl.style.display = 'block';
+  unplannedEl.innerHTML = `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cyan);margin-bottom:8px">Unplanned Wins This Week</div>
+    ${allUnplanned.map(u => {
+      const projColor = PROJECT_COLORS[u.project] || '#484f58';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text-muted)">
+        <span style="color:var(--cyan)">\u2713</span>
+        <span style="color:var(--text-dim)">${u.person}</span>
+        <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${esc(u.project)}</span>
+        <span>${u.count} commit${u.count > 1 ? 's' : ''} — ${esc(u.topMsg.slice(0, 60))}</span>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+// --- AI Next-Week Suggestions ---
+async function fetchAndRenderSuggestions() {
+  const suggestionsEl = document.getElementById('suggestions-section');
+  if (!suggestionsEl) return;
+
+  // Build inputs
+  const currentGoals = weeklyPlanData ? { steve: weeklyPlanData.steve, thomas: weeklyPlanData.thomas } : {};
+
+  // Get command center data from DOM (last rendered)
+  let commandCenter = [];
+  document.querySelectorAll('.cc-card').forEach(card => {
+    const name = card.querySelector('.cc-card-name')?.textContent || '';
+    const status = card.querySelector('.cc-status-badge')?.textContent || '';
+    const headline = card.querySelector('.cc-headline')?.textContent || '';
+    const readinessPct = card.querySelector('.cc-readiness-pct')?.textContent?.replace('%', '') || '0';
+    const nextSteps = [...card.querySelectorAll('.cc-detail-list.steps li')].map(li => li.textContent);
+    commandCenter.push({ name, status, headline, readiness: parseInt(readinessPct), nextSteps });
+  });
+
+  // Recent commits
+  const recentCommits = [
+    ...rawData.steve.commits.slice(0, 10).map(c => ({ person: 'Steve', message: c.message, project: c.project })),
+    ...rawData.thomas.commits.slice(0, 10).map(c => ({ person: 'Thomas', message: c.message, project: c.project })),
+  ];
+
+  suggestionsEl.innerHTML = `
+    <div class="card-header"><span class="card-title">Next Week Suggestions</span></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:16px 0;color:var(--text-dim);font-size:13px">
+      <div class="spinner" style="width:20px;height:20px;margin:0"></div> Generating suggestions...
+    </div>`;
+
+  try {
+    const res = await fetch('/api/suggest-goals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentGoals, commandCenter, recentCommits }),
+    });
+
+    if (!res.ok) throw new Error('Failed to fetch suggestions');
+    const data = await res.json();
+    const suggestions = data.suggestions;
+
+    if (!suggestions || (!suggestions.steve?.length && !suggestions.thomas?.length)) {
+      suggestionsEl.innerHTML = `
+        <div class="card-header"><span class="card-title">Next Week Suggestions</span></div>
+        <div style="color:var(--text-dim);font-size:13px;padding:12px 0">No suggestions available. Set this week's goals first.</div>`;
+      return;
+    }
+
+    function renderSuggestionList(goals, person) {
+      if (!goals || goals.length === 0) return '<div style="color:var(--text-dim);font-size:13px">No suggestions</div>';
+      return goals.map(g => {
+        const projColor = PROJECT_COLORS[g.project] || '#484f58';
+        const isCarryForward = g.text.includes('[carry-forward]');
+        const displayText = g.text.replace('[carry-forward]', '').trim();
+        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+          <span style="font-size:14px;color:var(--cyan);flex-shrink:0">\u2192</span>
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--text)">${isCarryForward ? '<span style="color:var(--orange);font-size:10px;font-weight:700;text-transform:uppercase;margin-right:6px">Carry Forward</span>' : ''}${esc(displayText)}</div>
+            <span class="commit-tag" style="background:${projColor}22;color:${projColor};margin-top:3px;display:inline-block">${esc(g.project)}</span>
+          </div>
+          <button class="date-btn" onclick="addSuggestedGoal('${person}','${esc(displayText).replace(/'/g, "\\'")}','${esc(g.project).replace(/'/g, "\\'")}')" style="font-size:11px;flex-shrink:0">+ Add</button>
+        </div>`;
+      }).join('');
+    }
+
+    suggestionsEl.innerHTML = `
+      <div class="card-header"><span class="card-title">Next Week Suggestions</span></div>
+      ${suggestions.rationale ? `<div style="color:var(--text-muted);font-size:13px;padding:8px 0;margin-bottom:8px;border-bottom:1px solid var(--border)">${esc(suggestions.rationale)}</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="person-label thomas-label" style="margin-bottom:8px">Thomas</div>
+          ${renderSuggestionList(suggestions.thomas, 'thomas')}
+        </div>
+        <div>
+          <div class="person-label steve-label" style="margin-bottom:8px">Steve</div>
+          ${renderSuggestionList(suggestions.steve, 'steve')}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Suggestions error:', err);
+    suggestionsEl.innerHTML = `
+      <div class="card-header"><span class="card-title">Next Week Suggestions</span></div>
+      <div style="color:var(--text-dim);font-size:13px;padding:12px 0">Could not generate suggestions. Try refreshing.</div>`;
+  }
+}
+
+function addSuggestedGoal(person, text, project) {
+  // Get next week's key
+  const now = new Date();
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + (8 - now.getDay()) % 7);
+  if (nextMonday <= now) nextMonday.setDate(nextMonday.getDate() + 7);
+  const nextWeekKey = nextMonday.toISOString().slice(0, 10);
+
+  // For now, add to current week (user can move later)
+  if (!weeklyPlanData) weeklyPlanData = { steve: [], thomas: [], updatedAt: new Date().toISOString() };
+  const goals = weeklyPlanData[person] || [];
+  goals.push({
+    id: `${person[0]}${Date.now()}`,
+    text,
+    project,
+    status: 'not-started',
+  });
+  weeklyPlanData[person] = goals;
+
+  // Save and re-render
+  const weekKey = getWeekStart(new Date());
+  fetch('/api/weekly-plans', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ week: weekKey, steve: weeklyPlanData.steve, thomas: weeklyPlanData.thomas }),
+  }).catch(err => console.error('Failed to save suggested goal:', err));
+
+  renderWeeklyScorecard();
+}
+
 // --- Event Listeners ---
 document.querySelectorAll('.date-btn[data-days]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.date-btn[data-days]').forEach(b => b.classList.remove('active'));
+    document.getElementById('this-week-btn').classList.remove('active');
     btn.classList.add('active');
     activeDays = parseInt(btn.dataset.days);
     applyDateFilter(activeDays);
@@ -965,18 +1601,46 @@ document.querySelectorAll('.date-btn[data-days]').forEach(btn => {
 });
 document.getElementById('custom-apply').addEventListener('click', applyCustomRange);
 
+// "This Week" button
+document.getElementById('this-week-btn').addEventListener('click', () => {
+  document.querySelectorAll('.date-btn[data-days]').forEach(b => b.classList.remove('active'));
+  document.getElementById('this-week-btn').classList.add('active');
+  const weekStart = getWeekStart(new Date());
+  const from = new Date(weekStart + 'T00:00:00');
+  const to = new Date(from);
+  to.setDate(to.getDate() + 6);
+  to.setHours(23, 59, 59, 999);
+  filteredData = filterByDate(rawData, from, to);
+  render();
+});
+
 // --- Init ---
-(async () => {
+async function loadAndRender() {
   try {
-    rawData = await fetchData();
+    const weekKey = getWeekStart(new Date());
+    const [data, plan] = await Promise.all([
+      fetchData(),
+      fetchWeeklyPlan(weekKey),
+    ]);
+    rawData = data;
+    weeklyPlanData = plan;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('meta').textContent = `Last refreshed: ${new Date(rawData.generatedAt).toLocaleString()} · Thomas: ${rawData.thomas.totalCommits} total commits · Steve: ${rawData.steve.totalCommits} total commits`;
     applyDateFilter(activeDays);
   } catch (err) {
-    document.getElementById('loading').innerHTML = `<div class="error-msg">Failed to load data: ${esc(err.message)}</div>`;
+    console.error('Data fetch error:', err);
+    if (!rawData) {
+      document.getElementById('loading').innerHTML = `<div class="error-msg">Failed to load data: ${esc(err.message)}</div>`;
+    }
   }
-})();
+}
+
+// Initial load
+loadAndRender();
+
+// Auto-refresh every 2 minutes
+setInterval(loadAndRender, 2 * 60 * 1000);
 </script>
 </body>
 </html>

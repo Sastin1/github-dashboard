@@ -96,7 +96,11 @@ export default async function handler(req, res) {
       const priorList = (cl.priorCommits && cl.priorCommits.length > 0)
         ? `\n  Prior work on this project (outside current period):\n${cl.priorCommits.slice(0, 5).map(m => `  - ${m}`).join('\n')}`
         : '';
-      return `[${i}] ${cl.person} - ${cl.project} (${cl.commits.length} commits, ${cl.activeDays} active days, ${cl.totalLines} lines changed):\n${commitList}${priorList}`;
+      // Include real WordPress deployment data when available
+      const wpLine = cl.wpMetrics
+        ? `\n  ACTUAL WEBSITE DATA (use these real numbers, NOT commit message counts): ${cl.wpMetrics.totalPages} total live pages, ${cl.wpMetrics.suburbPages} suburb/service pages, ${cl.wpMetrics.totalPosts} blog posts, ${cl.wpMetrics.modifiedLast7d} pages updated in last 7 days, ${cl.wpMetrics.modifiedLast30d} pages updated in last 30 days`
+        : '';
+      return `[${i}] ${cl.person} - ${cl.project} (${cl.commits.length} commits, ${cl.activeDays} active days, ${cl.totalLines} lines changed):\n${commitList}${priorList}${wpLine}`;
     }).join('\n\n');
 
     const prompt = `You are analyzing GitHub commit activity for a non-technical manager at LimoCity, a limo/transportation company.
@@ -121,6 +125,7 @@ Rules:
 - "remaining" items should be logical next steps, not wild speculation
 - For small clusters (1-2 commits, quick fixes), keep it proportional — short goal, 1-2 done items, likely empty remaining
 - The goal should explain WHY this work matters, not just WHAT was done
+- CRITICAL: When "ACTUAL WEBSITE DATA" is provided, use those real numbers for page counts and deployment scale. Do NOT add up numbers from individual commit messages — commit messages describe incremental batches, but the ACTUAL WEBSITE DATA shows the real cumulative totals. For example, if commits say "Build 35 pages" and "Build 5 pages" but actual data says 564 suburb pages, use 564.
 
 Return ONLY valid JSON with no other text:
 { "cards": { "0": { "goal": "...", "done": ["...", "..."], "donePrior": ["..."], "remaining": ["..."] }, "1": { ... } } }

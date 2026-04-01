@@ -12,6 +12,12 @@
     },
     "api/command-center.js": {
       "maxDuration": 30
+    },
+    "api/weekly-plans.js": {
+      "maxDuration": 15
+    },
+    "api/suggest-goals.js": {
+      "maxDuration": 30
     }
   }
 }
