@@ -4,6 +4,7 @@ const PEOPLE = [
     displayName: 'Steve Astin',
     repos: [
       { owner: 'Sastin1', repo: 'limocity-wat-backup' },
+      { owner: 'Sastin1', repo: 'github-dashboard' },
     ],
   },
   {
