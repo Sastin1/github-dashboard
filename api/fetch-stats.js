@@ -61,7 +61,7 @@ function getProject(message) {
   if (/phone|ringcentral|\bsms\b|voice route|inbound|outbound call/.test(msg)) return 'Telephony';
   if (/doc sweep|session log|worklog|briefing|update docs|session \d{4}|system map|cleanup|stale|design doc|onboarding.*guide|architecture.*vis/.test(msg)) return 'Docs / Admin';
   if (/google ads|bidding|cpc|ppc|gbp|analytics|ga4|conversion.*crash|tracking.*broke/.test(msg)) return 'Marketing';
-  if (/skill|memory|backup|repo cleanup|gitignore|\.env|eval.dashboard|training.module/.test(msg)) return 'Tools / Setup';
+  if (/skill|memory|backup|repo cleanup|gitignore|\.env|eval.dashboard|training.module|dashboard|weekly.hub|vercel/.test(msg)) return 'Tools / Setup';
   return 'Other';
 }
 

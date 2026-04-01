@@ -1069,6 +1069,32 @@ async function fetchCommandCenter(payload, dateLabel, containerEl) {
     html += '</div>';
 
     containerEl.innerHTML = html;
+
+    // Collect Command Center next steps as goal suggestions
+    sorted.forEach(init => {
+      if (init.nextSteps && init.nextSteps.length > 0) {
+        // Determine person from owner field
+        const person = init.owner === 'thomas' ? 'thomas' : init.owner === 'steve' ? 'steve' : null;
+        if (person) {
+          init.nextSteps.forEach(step => {
+            // Avoid duplicates with digest remaining items
+            const isDupe = digestRemainingItems.some(r => r.text === step && r.project === init.name);
+            if (!isDupe) {
+              digestRemainingItems.push({ person, project: init.name, text: step, source: 'command-center' });
+            }
+          });
+        } else {
+          // Owner is "both" — add to both people
+          init.nextSteps.forEach(step => {
+            const isDupe = digestRemainingItems.some(r => r.text === step && r.project === init.name);
+            if (!isDupe) {
+              digestRemainingItems.push({ person: 'steve', project: init.name, text: step, source: 'command-center' });
+              digestRemainingItems.push({ person: 'thomas', project: init.name, text: step, source: 'command-center' });
+            }
+          });
+        }
+      }
+    });
   } catch (err) {
     console.error('Command center fetch error:', err);
     containerEl.innerHTML = `<div class="card-header"><span class="card-title">GitHub Command Center &mdash; ${dateLabel}</span></div><div style="color:var(--text-dim);font-size:13px;padding:8px 0">Could not load strategic assessment. Try refreshing.</div>`;
@@ -1252,51 +1278,58 @@ function estimateEffort(text) {
 // --- Planning Form ---
 let planningFormVisible = false;
 
+function buildSuggestedGoalsHTML(items, person) {
+  if (items.length === 0) return '<div style="color:var(--text-dim);font-size:12px;padding:8px 0">No remaining items yet. Wait for AI summaries to load, then reopen this form.</div>';
+  const totalHours = items.reduce((sum, item) => sum + estimateEffort(item.text).hours, 0);
+  const totalLabel = totalHours <= 4 ? 'Light week' : totalHours <= 12 ? 'Moderate week' : totalHours <= 24 ? 'Heavy week' : 'Very heavy';
+  const totalColor = totalHours <= 4 ? 'var(--green)' : totalHours <= 12 ? 'var(--blue)' : totalHours <= 24 ? 'var(--orange)' : 'var(--red)';
+
+  const digestItems = items.filter(i => i.source !== 'command-center');
+  const ccItems = items.filter(i => i.source === 'command-center');
+
+  function renderItemRows(list) {
+    return list.map((item, i) => {
+      const projColor = PROJECT_COLORS[item.project] || '#484f58';
+      const effort = estimateEffort(item.text);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:var(--orange)">\u25CB</span>
+        <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${esc(item.project)}</span>
+        <span style="color:var(--text-muted);flex:1">${esc(item.text)}</span>
+        <span style="font-size:10px;font-weight:600;color:${effort.color};background:${effort.color}18;padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0">${effort.label}</span>
+        <button class="date-btn" onclick="addGoalFromDigest('${person}','${esc(item.text).replace(/'/g, "\\'")}','${esc(item.project).replace(/'/g, "\\'")}')" style="font-size:10px;padding:3px 8px">+ Add</button>
+      </div>`;
+    }).join('');
+  }
+
+  let html = `<div style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)">Suggested Goals (${items.length} items)</div>
+      <div style="font-size:11px;font-weight:600;color:${totalColor};background:${totalColor}18;padding:2px 10px;border-radius:10px">${totalLabel} (~${totalHours}h total)</div>
+    </div>`;
+
+  if (digestItems.length > 0) {
+    html += `<div style="font-size:10px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 4px;border-bottom:1px solid var(--border)">From Digest — Remaining Work</div>`;
+    html += renderItemRows(digestItems);
+  }
+  if (ccItems.length > 0) {
+    html += `<div style="font-size:10px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;padding:8px 0 4px;border-bottom:1px solid var(--border)">From Command Center — Next Steps</div>`;
+    html += renderItemRows(ccItems);
+  }
+
+  html += '</div>';
+  return html;
+}
+
 function showPlanningForm() {
   planningFormVisible = !planningFormVisible;
   const existing = document.getElementById('planning-form-section');
   if (!planningFormVisible) { if (existing) existing.style.display = 'none'; return; }
 
-  if (existing) { existing.style.display = 'block'; return; }
-
-  const formEl = document.createElement('div');
-  formEl.id = 'planning-form-section';
-  formEl.className = 'chart-card';
-  formEl.style.cssText = 'margin-top:16px';
-
-  const projectOptions = Object.keys(PROJECT_COLORS).map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-
-  // Build suggested items from digest "remaining" lists
+  // Always rebuild content with latest digest items
   const thomasSuggested = digestRemainingItems.filter(r => r.person === 'thomas');
   const steveSuggested = digestRemainingItems.filter(r => r.person === 'steve');
 
-  function renderSuggestedGoals(items, person) {
-    if (items.length === 0) return '';
-    // Calculate total effort hours for this person
-    const totalHours = items.reduce((sum, item) => sum + estimateEffort(item.text).hours, 0);
-    const totalLabel = totalHours <= 4 ? 'Light week' : totalHours <= 12 ? 'Moderate week' : totalHours <= 24 ? 'Heavy week' : 'Very heavy';
-    const totalColor = totalHours <= 4 ? 'var(--green)' : totalHours <= 12 ? 'var(--blue)' : totalHours <= 24 ? 'var(--orange)' : 'var(--red)';
-
-    return `<div style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)">From Digest — Remaining Items</div>
-        <div style="font-size:11px;font-weight:600;color:${totalColor};background:${totalColor}18;padding:2px 10px;border-radius:10px">${totalLabel} (~${totalHours}h total)</div>
-      </div>
-      ${items.map((item, i) => {
-        const projColor = PROJECT_COLORS[item.project] || '#484f58';
-        const effort = estimateEffort(item.text);
-        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="color:var(--orange)">\u25CB</span>
-          <span class="commit-tag" style="background:${projColor}22;color:${projColor}">${esc(item.project)}</span>
-          <span style="color:var(--text-muted);flex:1">${esc(item.text)}</span>
-          <span style="font-size:10px;font-weight:600;color:${effort.color};background:${effort.color}18;padding:1px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0">${effort.label}</span>
-          <button class="date-btn" onclick="addGoalFromDigest('${person}','${esc(item.text).replace(/'/g, "\\'")}','${esc(item.project).replace(/'/g, "\\'")}')" style="font-size:10px;padding:3px 8px">+ Add</button>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-
-  formEl.innerHTML = `
+  const formHTML = `
     <div class="card-header">
       <span class="card-title">Set Weekly Goals</span>
       <button class="drill-close" onclick="showPlanningForm()">&times;</button>
@@ -1304,13 +1337,13 @@ function showPlanningForm() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
       <div>
         <div class="person-label thomas-label" style="margin-bottom:8px">Thomas Goals</div>
-        ${renderSuggestedGoals(thomasSuggested, 'thomas')}
+        ${buildSuggestedGoalsHTML(thomasSuggested, 'thomas')}
         <div id="plan-thomas-goals"></div>
         <button class="date-btn" onclick="addGoalInput('thomas')" style="margin-top:8px;font-size:12px">+ Add Goal</button>
       </div>
       <div>
         <div class="person-label steve-label" style="margin-bottom:8px">Steve Goals</div>
-        ${renderSuggestedGoals(steveSuggested, 'steve')}
+        ${buildSuggestedGoalsHTML(steveSuggested, 'steve')}
         <div id="plan-steve-goals"></div>
         <button class="date-btn" onclick="addGoalInput('steve')" style="margin-top:8px;font-size:12px">+ Add Goal</button>
       </div>
@@ -1320,9 +1353,18 @@ function showPlanningForm() {
     </div>
   `;
 
-  // Insert after scorecard
-  const scorecard = document.getElementById('weekly-scorecard-section');
-  scorecard.parentNode.insertBefore(formEl, scorecard.nextSibling);
+  if (existing) {
+    existing.innerHTML = formHTML;
+    existing.style.display = 'block';
+  } else {
+    const formEl = document.createElement('div');
+    formEl.id = 'planning-form-section';
+    formEl.className = 'chart-card';
+    formEl.style.cssText = 'margin-top:16px';
+    formEl.innerHTML = formHTML;
+    const scorecard = document.getElementById('weekly-scorecard-section');
+    scorecard.parentNode.insertBefore(formEl, scorecard.nextSibling);
+  }
 
   // Populate with existing goals or empty inputs
   populatePlanForm('thomas');
