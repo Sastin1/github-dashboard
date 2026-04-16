@@ -2,6 +2,7 @@ const PEOPLE = [
   {
     key: 'steve',
     displayName: 'Steve Astin',
+    githubLogin: 'Sastin1',
     repos: [
       { owner: 'Sastin1', repo: 'limocity-wat-backup' },
       { owner: 'Sastin1', repo: 'github-dashboard' },
@@ -11,11 +12,16 @@ const PEOPLE = [
   {
     key: 'thomas',
     displayName: 'Thomas Clark',
+    githubLogin: 'thomaslc214',
     repos: [
-      { owner: 'thomaslc214', repo: 'pay-limocity' },
       { owner: 'thomaslc214', repo: 'winston-ai-limo-assistant' },
     ],
   },
+];
+
+// Repos where both Steve and Thomas contribute — split commits by authorLogin
+const SHARED_REPOS = [
+  { owner: 'thomaslc214', repo: 'pay-limocity', defaultOwner: 'thomas' },
 ];
 
 // --- Categorization ---
@@ -335,8 +341,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch WordPress metrics in parallel with GitHub data
+    // Fetch WordPress metrics and shared repos in parallel with GitHub data
     const wpMetricsPromise = fetchWPMetrics();
+    const sharedNodes = [];
+    for (const sr of SHARED_REPOS) {
+      const nodes = await fetchAllCommits(token, sr.owner, sr.repo);
+      for (const n of nodes) {
+        n._sourceRepo = `${sr.owner}/${sr.repo}`;
+        n._defaultOwner = sr.defaultOwner;
+      }
+      sharedNodes.push(...nodes);
+    }
+
     const results = {};
 
     for (const person of PEOPLE) {
@@ -358,6 +374,21 @@ export default async function handler(req, res) {
         }
       }
 
+      // Inject shared-repo commits that belong to this person (by authorLogin)
+      const knownLogins = new Set(PEOPLE.map(p => p.githubLogin).filter(Boolean));
+      for (const n of sharedNodes) {
+        if (seen.has(n.oid)) continue;
+        const login = n.author.user?.login || null;
+        const isAuthor = login && person.githubLogin && login === person.githubLogin;
+        // Unrecognized or missing login → default to repo owner
+        const isUnknown = !login || !knownLogins.has(login);
+        const isDefault = isUnknown && !isAuthor && person.key === n._defaultOwner;
+        if (isAuthor || isDefault) {
+          seen.add(n.oid);
+          allNodes.push(n);
+        }
+      }
+
       // Sort by date descending
       allNodes.sort((a, b) => new Date(b.committedDate) - new Date(a.committedDate));
 
@@ -368,8 +399,12 @@ export default async function handler(req, res) {
         ? Math.round((commits.reduce((s, c) => s + c.impactScore, 0) / commits.length) * 10) / 10
         : 0;
 
+      const allRepoLabels = [
+        ...person.repos.map(r => `${r.owner}/${r.repo}`),
+        ...SHARED_REPOS.map(r => `${r.owner}/${r.repo} (shared)`),
+      ];
       results[person.key] = {
-        repos: person.repos.map(r => `${r.owner}/${r.repo}`),
+        repos: allRepoLabels,
         displayName: person.displayName,
         totalCommits: commits.length,
         totalAdditions,
