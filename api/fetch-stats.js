@@ -6,7 +6,6 @@ const PEOPLE = [
     repos: [
       { owner: 'Sastin1', repo: 'limocity-wat-backup' },
       { owner: 'Sastin1', repo: 'github-dashboard' },
-      { owner: 'Sastin1', repo: 'pay-limocity' },
     ],
   },
   {

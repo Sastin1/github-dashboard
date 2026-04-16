@@ -350,11 +350,29 @@ function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('en-U
 function formatNumber(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n.toString(); }
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
+// --- WordPress Impact Bonus (Steve's SEO/page deployment work) ---
+function getWPBonus(wp) {
+  if (!wp || !wp.totalPages) return 0;
+  const activeBtn = document.querySelector('.date-btn[data-days].active');
+  const days = activeBtn ? parseInt(activeBtn.dataset.days) : 30;
+  if (days > 0 && days <= 7) return wp.modifiedLast7d || 0;
+  if (days > 7 && days <= 14) return wp.modifiedLast14d || 0;
+  return wp.modifiedLast30d || 0;
+}
+
 // --- Render ---
 function render() {
   const d = filteredData;
   const ss = calcStats(d.steve.commits);
   const ts = calcStats(d.thomas.commits);
+
+  // Add WordPress page deployments to Steve's impact score (1 pt per page)
+  const wpBonus = getWPBonus(rawData.wpMetrics);
+  if (wpBonus > 0) {
+    ss.totalImpact = Math.round((ss.totalImpact + wpBonus) * 10) / 10;
+    ss.wpBonus = wpBonus;
+  }
+
   renderWeeklyScorecard();
   renderSummary(ss, ts);
   renderWPMetrics(rawData.wpMetrics);
@@ -446,7 +464,7 @@ function renderSummary(ss, ts) {
           <div class="person-label steve-label">Steve</div>
           <div class="big-number" style="color:var(--steve-color)">${ss.totalImpact}</div>
           <div class="stat-sub">impact points</div>
-          <div class="stat-detail">${ss.commits} commits &middot; avg ${ss.avgImpact}/commit</div>
+          <div class="stat-detail">${ss.commits} commits &middot; avg ${ss.avgImpact}/commit${ss.wpBonus ? ` + ${ss.wpBonus} pages deployed` : ''}</div>
         </div>
       </div>
       <div class="explainer" id="score-explainer">
