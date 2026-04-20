@@ -351,13 +351,29 @@ function formatNumber(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n.to
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // --- WordPress Impact Bonus (Steve's SEO/page deployment work) ---
+// Only fires when the active time range cleanly maps to a WP window (7d / 14d / 30d
+// or "This Week"). Custom date ranges and "All" return 0 because we don't have WP
+// deployment data for arbitrary spans — better to show 0 than inflate with a stale
+// 30-day count (previous bug: non-data-days buttons defaulted to modifiedLast30d,
+// so "This Week" and custom ranges both tacked +602 pages onto a 7-day window).
 function getWPBonus(wp) {
   if (!wp || !wp.totalPages) return 0;
-  const activeBtn = document.querySelector('.date-btn[data-days].active');
-  const days = activeBtn ? parseInt(activeBtn.dataset.days) : 30;
-  if (days > 0 && days <= 7) return wp.modifiedLast7d || 0;
-  if (days > 7 && days <= 14) return wp.modifiedLast14d || 0;
-  return wp.modifiedLast30d || 0;
+  const activeBtn = document.querySelector('.date-btn.active');
+  if (!activeBtn) return 0;
+
+  // Preset day buttons (7d / 14d / 30d)
+  const days = activeBtn.dataset.days ? parseInt(activeBtn.dataset.days) : null;
+  if (days) {
+    if (days <= 7) return wp.modifiedLast7d || 0;
+    if (days <= 14) return wp.modifiedLast14d || 0;
+    return wp.modifiedLast30d || 0;
+  }
+
+  // "This Week" button → current Sun–Sat window, ≈ 7-day WP window
+  if (activeBtn.id === 'this-week-btn') return wp.modifiedLast7d || 0;
+
+  // Custom date range or "All" → no bonus
+  return 0;
 }
 
 // --- Render ---
