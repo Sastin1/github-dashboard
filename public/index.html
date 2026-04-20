@@ -1151,10 +1151,16 @@ function getWeekStart(date) {
 
 function getCurrentWeekLabel() {
   const now = new Date();
-  const weekStart = getWeekStart(now);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  return `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+  const weekStart = getWeekStart(now); // "YYYY-MM-DD" (Monday)
+  // Parse as LOCAL midnight (not UTC) so formatDate doesn't shift the date
+  // back one day in US time zones. Previously showed "Apr 19 – Apr 25" on a
+  // Monday-start week because `new Date("2026-04-20")` parses as UTC midnight
+  // which is the prior evening in CT.
+  const start = new Date(weekStart + 'T00:00:00');
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const opts = { month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}`;
 }
 
 async function fetchWeeklyPlan(weekKey) {
