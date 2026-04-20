@@ -1,7 +1,7 @@
 // Weekly Plans API — CRUD for goal tracking via GitHub Contents API
-// Plans stored as JSON at dashboard/weekly-plans.json in Sastin1/limocity-wat-backup
+// Plans stored as JSON at dashboard/weekly-plans.json in limocity/limocity-wat-backup
 
-const REPO = 'Sastin1/limocity-wat-backup';
+const REPO = 'limocity/limocity-wat-backup';
 const FILE_PATH = 'dashboard/weekly-plans.json';
 
 async function readPlansFile(token) {
